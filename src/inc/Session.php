@@ -156,14 +156,27 @@ final class Session
      * @access public
      * @param void
      * @return bool
-     * 
-     * PHP_SESSION_DISABLED 0
+     *
      * PHP_SESSION_NONE 1
      * PHP_SESSION_ACTIVE 2
      */
     public static function isActive()
     {
-        return (session_status() === PHP_SESSION_ACTIVE);
+        return (session_status() === PHP_SESSION_NONE);
+    }
+
+    /**
+     * Check session is disabled.
+     *
+     * @access public
+     * @param void
+     * @return bool
+     *
+     * PHP_SESSION_DISABLED 0
+     */
+    public static function isDisabled()
+    {
+        return (session_status() === PHP_SESSION_DISABLED);
     }
     
     /**
