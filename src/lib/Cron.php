@@ -2,7 +2,7 @@
 /**
  * @author    : Jakiboy
  * @package   : VanillePlugin
- * @version   : 0.9.x
+ * @version   : 1.0.x
  * @copyright : (c) 2018 - 2024 Jihad Sinnaour <mail@jihadsinnaour.com>
  * @link      : https://jakiboy.github.io/VanillePlugin/
  * @license   : MIT
@@ -14,209 +14,204 @@ declare(strict_types=1);
 
 namespace VanillePlugin\lib;
 
-use VanillePlugin\int\CronInterface;
 use VanillePlugin\inc\{
-	Arrayify, Stringify, TypeCheck
+    Arrayify, GlobalConst, Stringify, TypeCheck
 };
+use VanillePlugin\int\CronInterface;
 
+/**
+ * Plugin CRON manager.
+ */
 class Cron extends PluginOptions implements CronInterface
 {
 	/**
-	* @access private
-	* @var array $schedules
-	* @var array $actions
-	*/
-	private $schedules = [];
-	private $actions = [];
-
-	/**
-	 * Apply schedulers.
-	 * Filter: cron_schedules
-	 *
-	 * @access public
-	 * @param array $schedules
-	 * @return array
-	 */
-	public function apply($schedules)
-	{
-		foreach ($this->sanitizeSchedules() as $schedule) {
-			if ( !isset($schedules[$schedule['name']]) ) {
-		        $schedules[$schedule['name']] = [
-		            'display'  => $schedule['display'],
-		            'interval' => $schedule['interval']
-		        ];
-			}
-		}
-	    return $schedules;
-	}
-
-	/**
-	 * Start schedulers.
-	 *
-	 * @access public
-	 * @param void
-	 * @return void
-	 */
-	public function start()
-	{
-		$this->addFilter('cron_schedules', [$this,'apply']);
-		foreach ($this->sanitizeActions() as $action) {
-			if ( !$this->next("{$this->getNameSpace()}-{$action['name']}") ) {
-				$this->schedule(
-					$action['schedule'],
-					"{$this->getNameSpace()}-{$action['name']}"
-				);
-			}
-			$this->addAction("{$this->getNameSpace()}-{$action['name']}",$action['callable']);
-		}
-	}
-
-	/**
-	 * Check scheduled waitlist.
-	 *
-	 * @access public
-	 * @param string $name
-	 * @return bool
-	 */
-	public function next($name)
-	{
-		return wp_next_scheduled($name);
-	}
-
-	/**
-	 * Check scheduled waitlist.
-	 *
-	 * @access public
-	 * @param int $interval
-	 * @param string $hook
-	 * @return mixed
-	 */
-	public function schedule($interval,$hook)
-	{
-		return wp_schedule_event(time(),$interval,$hook);
-	}
-
-	/**
-	 * Clear hooked schedulers.
-	 *
-	 * @access public
-	 * @param string $name
-	 * @return mixed
-	 */
-	public function clear($name)
-	{
-		return wp_clear_scheduled_hook("{$this->getNameSpace()}-{$name}");
-	}
-
-	/**
-	 * Set schedulers.
-	 *
 	 * @access protected
-	 * @param array $schedules
-	 * @return void
+	 * @var string SERVER, Server constant
 	 */
-	protected function setSchedules($schedules = [])
+	protected const SERVER = 'disable-wp-cron';
+
+	/**
+	 * @access protected
+	 * @var array $schedules, Cron custom schedules
+	 * @var array $events, Cron events
+	 * @var int $timestamp, Cron timestamp
+	 */
+	protected $schedules = [];
+	protected $events = [];
+	protected $timestamp;
+
+	/**
+	 * @inheritdoc
+	 */
+	public function __construct(?int $timestamp = null)
 	{
-		$this->schedules = $schedules;
+		$this->timestamp = $timestamp ?: time();
 	}
 
 	/**
-	 * Add schedulers.
-	 *
-	 * @access protected
-	 * @param array $schedules
-	 * @return void
+	 * @inheritdoc
 	 */
-	protected function addSchedules($schedules = [])
+	public function register()
 	{
-		$this->schedules[] = $schedules;
-	}
+		$this->addFilter('cron-schedules', function($schedules) {
+			$custom = $this->sanitizeSchedules(
+				$this->getSchedules()
+			);
+			return Arrayify::merge($custom, $schedules);
+		});
 
-	/**
-	 * Set schedulers actions.
-	 *
-	 * @access protected
-	 * @param array $actions
-	 * @return void
-	 */
-	protected function setActions($actions = [])
-	{
-		$this->actions = $actions;
-	}
-
-	/**
-	 * Add schedulers actions.
-	 *
-	 * @access protected
-	 * @param array $actions
-	 * @return void
-	 */
-	protected function addActions($actions = [])
-	{
-		$this->actions[] = $actions;
-	}
-
-	/**
-	 * Sanitize schedulers actions.
-	 * Filter: {plugin}-schedulers-actions
-	 *
-	 * @access protected
-	 * @param void
-	 * @return array
-	 */
-	protected function sanitizeActions()
-	{
-		$this->actions = Arrayify::uniqueMultiple(
-			$this->applyPluginFilter('schedulers-actions',$this->actions)
+		$events = $this->sanitizeEvents(
+			$this->getEvents()
 		);
-		foreach ($this->actions as $key => $action) {
-			if ( !isset($action['name']) ) {
-				unset($this->actions[$key]);
+
+		foreach ($events as $event) {
+			$name = $this->applyNameSpace($event['name']);
+			$this->addAction($name, $event['callback']);
+		}
+	}
+
+	/**
+	 * @inheritdoc
+	 */
+	public function run()
+	{
+		if ( GlobalConst::installing() ) {
+			return;
+		}
+
+		$events = $this->sanitizeEvents(
+			$this->getEvents()
+		);
+
+		foreach ($events as $event) {
+			$name = $this->applyNameSpace($event['name']);
+			if ( !$this->next($name) ) {
+				$this->schedule($event['schedule'], $name);
 			}
-			if ( !isset($action['schedule']) ) {
-				$this->actions[$key]['schedule'] = 'daily';
-			}
-			if ( !isset($action['callable']) && isset($action['name']) ) {
-				$name = explode('-',Stringify::slugify($action['name']));
-				if ( count($name) == 2 ) {
-					$name[1] = Stringify::capitalize($name[1]);
-				}
-				$callable = implode('',$name);
-				$callable = Stringify::replace('-','',$callable);
-				if ( TypeCheck::hasMethod($this,$callable) ) {
-					$this->actions[$key]['callable'] = [$this,$callable];
+		}
+	}
+
+	/**
+	 * @inheritdoc
+	 */
+	public function remove()
+	{
+		$events = $this->sanitizeEvents(
+			$this->getEvents()
+		);
+
+		foreach ($events as $event) {
+			$name = $this->applyNameSpace($event['name']);
+			$this->clear($name);
+		}
+	}
+
+	/**
+	 * @inheritdoc
+	 */
+	public function useServer()
+	{
+		$const = Stringify::undash(static::SERVER, true);
+		if ( !defined($const) ) {
+			define($const, true);
+		}
+	}
+
+	/**
+	 * @inheritdoc
+	 */
+	public function isServer() : bool
+	{
+		$const = Stringify::undash(static::SERVER, true);
+		return defined($const);
+	}
+
+	/**
+	 * @inheritdoc
+	 */
+	public function next(string $name, array $args = []) : int
+	{
+		return (int)wp_next_scheduled($name, $args);
+	}
+
+	/**
+	 * @inheritdoc
+	 */
+	public function schedule(string $interval, string $hook, array $args = []) : bool
+	{
+		return wp_schedule_event($this->timestamp, $interval, $hook, $args, false);
+	}
+
+	/**
+	 * @inheritdoc
+	 */
+	public function once(string $hook, array $args = []) : bool
+	{
+		return wp_schedule_single_event($this->timestamp, $hook, $args, false);
+	}
+
+	/**
+	 * @inheritdoc
+	 */
+	public function unschedule(string $hook, array $args = []) : bool
+	{
+		return wp_unschedule_event($this->timestamp, $hook, $args);
+	}
+
+	/**
+	 * @inheritdoc
+	 */
+	public function clear(string $hook, array $args = []) : int
+	{
+		return (int)wp_clear_scheduled_hook($hook, $args);
+	}
+
+	/**
+	 * Sanitize cron event.
+	 *
+	 * @access protected
+	 * @param array $events
+	 * @return array
+	 */
+	protected function sanitizeEvents(array $events) : array
+	{
+		foreach ($events as $key => $event) {
+
+			if ( !isset($event['callback'])  ) {
+				$callback = Stringify::camelcase($event['name']);
+
+				if ( TypeCheck::hasMethod(static::class, $callback) ) {
+					$events[$key]['callback'] = [$this, $callback];
+
 				} else {
-					unset($this->actions[$key]);
+					unset($events[$key]);
+					continue;
 				}
-			} else {
-				unset($this->actions[$key]);
 			}
+
 		}
-		return $this->actions;
+
+		return $events;
 	}
 
 	/**
-	 * Sanitize schedulers.
-	 * Filter: {plugin}-cron-schedules
+	 * Sanitize event schedules.
 	 *
 	 * @access protected
-	 * @param void
+	 * @param array $schedules
 	 * @return array
 	 */
-	protected function sanitizeSchedules()
+	protected function sanitizeSchedules(array $schedules) : array
 	{
-		$this->schedules = Arrayify::uniqueMultiple(
-			$this->applyPluginFilter('cron-schedules',$this->schedules)
-		);
-		foreach ($this->schedules as $key => $schedule) {
-			if ( !isset($schedule['name']) 
-			  || !isset($schedule['display']) 
-			  || !isset($schedule['interval']) ) {
-				unset($this->schedules[$key]);
-			} else {
-				$this->schedules[$key]['interval'] = (int)$schedule['interval'];
+		foreach ($schedules as $name => $data) {
+			$display = $data['display'] ?? false;
+			if ( !$display ) {
+				$display = Stringify::capitalize($name);
 			}
+			$display = $this->translate($display);
+			$schedules[$name]['display'] = $display;
 		}
-		return $this->schedules;
+
+		return $schedules;
 	}
 }

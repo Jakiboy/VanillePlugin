@@ -165,7 +165,7 @@ final class Session
     {
         return (session_status() === PHP_SESSION_ACTIVE);
     }
-    
+
     /**
      * Close session.
      *

@@ -113,4 +113,15 @@ final class GlobalConst
 		$request = Server::get('request-uri');
 		return Stringify::contains($request, 'admin-ajax.php');
 	}
+
+	/**
+	 * Get site installing status.
+	 *
+	 * @access public
+	 * @return bool
+	 */
+	public static function installing() : bool
+	{
+		return wp_installing();
+	}
 }

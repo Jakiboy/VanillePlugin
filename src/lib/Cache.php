@@ -142,14 +142,15 @@ final class Cache extends PluginOptions
 	public function purge(bool $force = false) : bool
 	{
 		$count = 0;
+		$count += (int)$this->deleteTransients();
 		$count += (int)wp_cache_flush();
 
-		if ( $this->hasThirdCache() ) {
+		if ( self::hasThirdCache() ) {
 			$cache  = self::THIRD;
 			$count += (int)$cache::purge();
 		}
 
-		if ( $this->hasInternalCache() ) {
+		if ( self::hasInternalCache() ) {
 			$cache  = self::getInternalCache();
 			$count += (int)$cache->purge();
 		}
@@ -171,7 +172,7 @@ final class Cache extends PluginOptions
 	 * @access public
 	 * @return bool
 	 */
-	public function hasThirdCache() : bool
+	public static function hasThirdCache() : bool
 	{
 		if ( TypeCheck::isClass(self::THIRD) ) {
 			$cache = self::THIRD;
@@ -188,7 +189,7 @@ final class Cache extends PluginOptions
 	 * @access public
 	 * @return bool
 	 */
-	public function hasInternalCache() : bool
+	public static function hasInternalCache() : bool
 	{
 		return TypeCheck::isClass(self::INTERNAL);
 	}
@@ -200,7 +201,7 @@ final class Cache extends PluginOptions
 	 * @param string $driver
 	 * @return object
 	 */
-	public function getInternalCache(string $driver = 'File') : object
+	public static function getInternalCache(string $driver = 'File') : object
 	{
 		$cache = self::INTERNAL;
 		return new $cache($driver);

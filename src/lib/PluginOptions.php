@@ -866,7 +866,7 @@ class PluginOptions extends WordPress
 	 */
 	protected function hasPluginCapability($cap = 'manage')
 	{
-		$prefix = Stringify::replace('-','_',$this->getNameSpace());
+		$prefix = Stringify::replace('-', '_', $this->getNameSpace());
 		$this->hasCapability("{$cap}_{$prefix}");
 	}
 
@@ -943,7 +943,7 @@ class PluginOptions extends WordPress
 		} else {
 			$message = $this->translate($message);
 		}
-		$this->setHttpResponse($message,$content,$status,$code);
+		$this->setHttpResponse($message, $content, $status, $code);
 	}
 
 	/**
@@ -958,7 +958,7 @@ class PluginOptions extends WordPress
 	 */
 	protected function setHttpResponse($message, $content = [], $status = 'success', $code = 200)
 	{
-		Response::set($message,$content,$status,$code);
+		Response::set($message, $content, $status, $code);
 	}
 
 	/**
@@ -1070,7 +1070,7 @@ class PluginOptions extends WordPress
 	 * @param array $strings
 	 * @return array
 	 */
-	public function translateDeepStrings($strings)
+	public function translateDeep($strings)
 	{
 		Arrayify::walkRecursive($strings, function(&$string) {
 			if ( TypeCheck::isString($string) ) {
@@ -1081,29 +1081,18 @@ class PluginOptions extends WordPress
 	}
 
 	/**
-	 * Load translated strings (admin/front).
+	 * Load plugin translated strings.
+	 * Admin and Front.
 	 *
 	 * @access public
 	 * @param string $type
 	 * @return array
 	 */
-	public function loadStrings($type = '')
+	public function loadStrings(?string $type = null) : array
 	{
-		$strings = $this->getStrings();
-		switch ($type) {
-			case 'admin':
-				return $this->translateDeepStrings(
-					$strings['admin']
-				);
-				break;
-
-			case 'front':
-				return $this->translateDeepStrings(
-					$strings['front']
-				);
-				break;
-		}
-		return $this->translateDeepStrings($strings);
+		return $this->translateDeep(
+			$this->getStrings($type)
+		);
 	}
 
 	/**

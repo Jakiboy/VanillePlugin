@@ -14,105 +14,66 @@ declare(strict_types=1);
 
 namespace VanillePlugin;
 
+use VanillePlugin\exc\ConfigException;
 use VanillePlugin\inc\{
-	Validator, TypeCheck, File, GlobalConst
+    TypeCheck, Stringify, Arrayify
 };
-use VanillePlugin\exc\{
-	NamepsaceException, ConfigException
-};
-use JsonSchema\Validator as JsonValidator;
+use JsonSchema\Validator;
 
-final class VanillePluginValidator extends Validator
+/**
+ * Configuration validator.
+ */
+final class VanillePluginValidator
 {
 	/**
+	 * Validate config data using schema.
+	 *
 	 * @access public
-	 * @var mixed $plugin
-	 * @return void
-	 * @throws NamepsaceException
-	 */
-	public static function checkNamespace($plugin)
-	{
-		if ( !self::isValidNamespace($plugin) ) {
-			$namespace = $plugin->getNameSpace();
-			if ( TypeCheck::isObject($namespace) ) {
-				$namespace = '{Object}';
-			} elseif ( TypeCheck::isArray($namespace) ) {
-				$namespace = '[Array]';
-			} else {
-				$namespace = (string)$namespace;
-			}
-	        throw new NamepsaceException(
-	            NamepsaceException::invalidPluginNamepsace($namespace)
-	        );
-		}
-	}
-
-	/**
-	 * @access public
-	 * @var object $global,
-	 * @var string $file
+	 * @var mixed $data
+	 * @var string $schema
 	 * @return void
 	 * @throws ConfigException
 	 */
-	public static function checkConfig($global, $file = null)
+	public static function validate($data, string $schema)
 	{
-		$error = self::isValidConfig($global);
-		if ( TypeCheck::isString($error) ) {
+		if ( !self::isValid($data, $schema, $error) ) {
+
+			if ( TypeCheck::isString($error) ) {
+				throw new ConfigException(
+					ConfigException::invalidConfig($error, $schema)
+				);
+			}
+
 	        throw new ConfigException(
-	            ConfigException::invalidConfig($error,$file)
-	        );
-		} elseif ( $error === false ) {
-	        throw new ConfigException(
-	            ConfigException::invalidConfigFormat($file)
+	            ConfigException::invalidConfigFormat($schema)
 	        );
 		}
 	}
 
 	/**
-	 * Validate plugin namespace.
-	 * 
+	 * Check whether config has valid schema.
+	 *
 	 * @access private
-	 * @var object $plugin
+	 * @var mixed $data
+	 * @var string $schema
+	 * @var string $error
 	 * @return bool
 	 */
-	private static function isValidNamespace($plugin)
+	private static function isValid($data, string $schema, &$error = null) : bool
 	{
-		if ( TypeCheck::isObject($plugin) ) {
-			if ( TypeCheck::isString($plugin->getNameSpace()) ) {
-				if ( !empty($namespace = $plugin->getNameSpace()) ) {
-					return File::exists(
-						GlobalConst::pluginDir("/{$namespace}/{$namespace}.php")
-					);
-				}
-			}
-		}
-		return false;
-	}
+		$validator = new Validator();
+		$path = Stringify::formatPath(__DIR__ . "/bin/{$schema}.schema.json");
+		$validator->validate($data, (object)[
+			'$ref' => "file://{$path}"
+		]);
 
-	/**
-	 * Validate plugin configuration.
-	 * 
-	 * @access private
-	 * @var object $config
-	 * @return mixed
-	 */
-	private static function isValidConfig($config)
-	{
-		if ( TypeCheck::isObject($config) ) {
-			$validator = new JsonValidator;
-			$validator->validate($config, (object)[
-				'$ref' => 'file://' . dirname(__FILE__).'/config.schema.json'
-			]);
-			if ( $validator->isValid() ) {
-				return true;
-			} else {
-				$errors = [];
-			    foreach ($validator->getErrors() as $error) {
-			        $errors[] = sprintf("[%s] %s",$error['property'],$error['message']);
-			    }
-			    return implode("\n", $errors);
-			}
+		if ( !$validator->isValid() ) {
+			$errors = $validator->getErrors();
+			$error  = Arrayify::shift($errors);
+			$error  = "{$error['message']} [{$error['property']}]";
+			return false;
 		}
-		return false;
+
+		return true;
 	}
 }

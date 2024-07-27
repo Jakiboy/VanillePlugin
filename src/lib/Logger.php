@@ -89,9 +89,9 @@ class Logger extends PluginOptions implements LoggerInterface
     public function debug($message = '', $isArray = false)
     {
         if ( $isArray ) {
-            $message = print_r($message,true);
+            $message = print_r($message, true);
         }
-        $this->write('debug',$message);
+        $this->write('debug', $message);
     }
 
     /**
@@ -103,7 +103,7 @@ class Logger extends PluginOptions implements LoggerInterface
      */
     public function error($message = '')
     {
-        $this->write('error',$message);
+        $this->write('error', $message);
     }
 
     /**
@@ -115,7 +115,7 @@ class Logger extends PluginOptions implements LoggerInterface
      */
     public function warning($message = '')
     {
-        $this->write('warning',$message);
+        $this->write('warning', $message);
     }
 
     /**
@@ -127,7 +127,7 @@ class Logger extends PluginOptions implements LoggerInterface
      */
     public function info($message = '')
     {
-        $this->write('info',$message);
+        $this->write('info', $message);
     }
 
     /**
@@ -140,7 +140,7 @@ class Logger extends PluginOptions implements LoggerInterface
      */
     public function custom($message = '', $type = 'custom')
     {
-        $this->write($type,$message);
+        $this->write($type, $message);
     }
 
     /**
@@ -155,7 +155,7 @@ class Logger extends PluginOptions implements LoggerInterface
      */
     public function log($message = '', $type = 0, $path = null, $headers = null)
     {
-        error_log($message,$type,$path,$headers);
+        error_log($message, $type, $path, $headers);
     }
 
     /**
