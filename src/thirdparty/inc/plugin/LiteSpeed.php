@@ -1,9 +1,9 @@
 <?php
 /**
- * @author    : JIHAD SINNAOUR
+ * @author    : Jakiboy
  * @package   : VanillePlugin
- * @version   : 0.9.6
- * @copyright : (c) 2018 - 2023 Jihad Sinnaour <mail@jihadsinnaour.com>
+ * @version   : 0.9.x
+ * @copyright : (c) 2018 - 2024 Jihad Sinnaour <mail@jihadsinnaour.com>
  * @link      : https://jakiboy.github.io/VanillePlugin/
  * @license   : MIT
  *
@@ -14,9 +14,11 @@ declare(strict_types=1);
 
 namespace VanillePlugin\thirdparty\inc\plugin;
 
+use VanillePlugin\thirdparty\Helper;
+
 /**
  * LiteSpeed plugin helper class.
- * 
+ *
  * @see https://github.com/litespeedtech/lscache_wp
  */
 final class LiteSpeed
@@ -25,25 +27,23 @@ final class LiteSpeed
 	 * Check whether plugin is enabled.
 	 * 
 	 * @access public
-	 * @param void
 	 * @return bool
 	 */
-	public static function isEnabled()
+	public static function isEnabled() : bool
 	{
-		return defined('LSCWP_BASENAME');
+		return Helper::isClass('\LiteSpeed\Purge');
 	}
 	
 	/**
 	 * Purge cache.
 	 * 
 	 * @access public
-	 * @param void
 	 * @return bool
 	 * @internal
 	 */
-	public static function purge()
+	public static function purge() : bool
 	{
-		if ( class_exists('\LiteSpeed\Purge') ) {
+		if ( self::isEnabled() ) {
 			\LiteSpeed\Purge::purge_all();
 			return true;
 		}

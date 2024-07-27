@@ -1,9 +1,9 @@
 <?php
 /**
- * @author    : JIHAD SINNAOUR
+ * @author    : Jakiboy
  * @package   : VanillePlugin
- * @version   : 0.9.6
- * @copyright : (c) 2018 - 2023 Jihad Sinnaour <mail@jihadsinnaour.com>
+ * @version   : 0.9.x
+ * @copyright : (c) 2018 - 2024 Jihad Sinnaour <mail@jihadsinnaour.com>
  * @link      : https://jakiboy.github.io/VanillePlugin/
  * @license   : MIT
  *
@@ -13,8 +13,6 @@
 declare(strict_types=1);
 
 namespace VanillePlugin\lib;
-
-use VanillePlugin\int\PluginNameSpaceInterface;
 
 /**
  * Helper class for extra admin hooks (beta),
@@ -34,20 +32,18 @@ final class Hook extends PluginOptions
 	 * Get valid hooks.
 	 *
 	 * @access public
-	 * @param PluginNameSpaceInterface $plugin
+	 * @param void
 	 * @return mixed
 	 */
-	public static function get(PluginNameSpaceInterface $plugin)
+	public static function get()
 	{
-		// Init plugin config
 		$hook = parent::getStatic();
-        $hook->initConfig($plugin);
 
 		// Filter settings
 		if ( $hook->hasPluginFilter(static::FILTER) ) {
 
-			$default = $hook->getPluginOption(static::OPTION,'array',[],false);
-			$extras  = $hook->applyPluginFilter(static::FILTER,$default);
+			$default = $hook->getPluginOption(static::OPTION, []);
+			$extras  = $hook->applyPluginFilter(static::FILTER, $default);
 
 			// Reset settings
 			foreach ($extras as $type => $extra) {
@@ -67,7 +63,7 @@ final class Hook extends PluginOptions
 			}
 
 			// Return filtered extras
-			$hook->updatePluginOption(static::OPTION,$default,false);
+			$hook->updatePluginOption(static::OPTION, $default, false);
 			return $extras;
 		}
 
@@ -79,16 +75,12 @@ final class Hook extends PluginOptions
 	 *
 	 * @access public
 	 * @param string $group
-	 * @param PluginNameSpaceInterface $plugin
 	 * @return void
 	 */
-	public static function register($group, PluginNameSpaceInterface $plugin)
+	public static function register($group)
 	{
-		// Init plugin config
 		$hook = parent::getStatic();
-        $hook->initConfig($plugin);
-
-		$hook->registerPluginOption($group,static::OPTION,false);
+		$hook->registerPluginOption($group, static::OPTION,false);
 	}
 
 	/**
@@ -96,15 +88,11 @@ final class Hook extends PluginOptions
 	 *
 	 * @access public
 	 * @param array $default
-	 * @param PluginNameSpaceInterface $plugin
 	 * @return bool
 	 */
-	public static function add($default, PluginNameSpaceInterface $plugin)
+	public static function add($default)
 	{
-		// Init plugin config
 		$hook = parent::getStatic();
-        $hook->initConfig($plugin);
-
 		return $hook->addPluginOption(static::OPTION,$default,false);
 	}
 }

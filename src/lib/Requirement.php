@@ -1,9 +1,9 @@
 <?php
 /**
- * @author    : JIHAD SINNAOUR
+ * @author    : Jakiboy
  * @package   : VanillePlugin
- * @version   : 0.9.6
- * @copyright : (c) 2018 - 2023 Jihad Sinnaour <mail@jihadsinnaour.com>
+ * @version   : 0.9.x
+ * @copyright : (c) 2018 - 2024 Jihad Sinnaour <mail@jihadsinnaour.com>
  * @link      : https://jakiboy.github.io/VanillePlugin/
  * @license   : MIT
  *
@@ -15,11 +15,9 @@ declare(strict_types=1);
 namespace VanillePlugin\lib;
 
 use VanillePlugin\int\RequirementInterface;
-use VanillePlugin\int\PluginNameSpaceInterface;
-use VanillePlugin\inc\File;
-use VanillePlugin\inc\Stringify;
-use VanillePlugin\inc\Arrayify;
-use VanillePlugin\inc\TypeCheck;
+use VanillePlugin\inc\{
+	File, Stringify, Arrayify, TypeCheck
+};
 
 class Requirement extends Notice implements RequirementInterface
 {
@@ -32,18 +30,16 @@ class Requirement extends Notice implements RequirementInterface
 	private $strings;
 
 	/**
-	 * @param PluginNameSpaceInterface $plugin
+	 * @param void
 	 */
-	public function __construct(PluginNameSpaceInterface $plugin)
+	public function __construct()
 	{
-		// Init plugin config
-		$this->initConfig($plugin);
-		$this->init([$this,'requirePath']);
-		$this->init([$this,'requirePlugins']);
-		$this->init([$this,'requireOptions']);
-		$this->init([$this,'requireTemplates']);
-		$this->init([$this,'requireModules']);
-		$this->init([$this,'php']);
+		$this->display([$this,'requirePath']);
+		$this->display([$this,'requirePlugins']);
+		$this->display([$this,'requireOptions']);
+		$this->display([$this,'requireTemplates']);
+		$this->display([$this,'requireModules']);
+		$this->display([$this,'php']);
 
 		// Set template
 		$this->tpl = $this->applyPluginFilter('requirement-template','admin/inc/notice/requirement');
@@ -104,7 +100,7 @@ class Requirement extends Notice implements RequirementInterface
 		        // Try creating path
 				if ( !File::addDir(Stringify::formatPath($path)) ) {
 
-					$message = $this->translateVars(
+					$message = $this->transVar(
 						$this->strings['path']['exists'],
 						[
 							$this->getPluginName(),
@@ -118,7 +114,7 @@ class Requirement extends Notice implements RequirementInterface
 					$notice .= '<p>';
 					$notice .= '<i class="icon-close"></i> ';
 					$notice .= '<strong>';
-					$notice .= $this->translateString('Warning') . ' : ';
+					$notice .= $this->translate('Warning') . ' : ';
 					$notice .= '</strong>';
 					$notice .= $message;
 					$notice .= '</p>';
@@ -157,7 +153,7 @@ class Requirement extends Notice implements RequirementInterface
 				
 				$this->render([
 					'item'   => $name,
-					'notice' => $this->translateString($this->strings['plugin']['install']) . '.'
+					'notice' => $this->translate($this->strings['plugin']['install']) . '.'
 				],$this->tpl);
 
 			} else {
@@ -166,7 +162,7 @@ class Requirement extends Notice implements RequirementInterface
 				if ( !$this->isActivated($callable) ) {
 					$this->render([
 						'item'   => $name,
-						'notice' => $this->translateString($this->strings['plugin']['activate']) . '.'
+						'notice' => $this->translate($this->strings['plugin']['activate']) . '.'
 					],$this->tpl);
 				}
 			}
@@ -193,13 +189,13 @@ class Requirement extends Notice implements RequirementInterface
 			if ( $this->getOption($option->slug) !== $option->value ) {
 				$this->render([
 					'item'   => $name,
-					'notice' => $this->translateString($this->strings['option']['missing']) . '.'
+					'notice' => $this->translate($this->strings['option']['missing']) . '.'
 				],$this->tpl);
 
 			} elseif ( empty($this->getOption($option->slug)) ) {
 				$this->render([
 					'item'   => $name,
-					'notice' => $this->translateString($this->strings['option']['empty']) . '.'
+					'notice' => $this->translate($this->strings['option']['empty']) . '.'
 				],$this->tpl);
 			}
 		}
@@ -232,12 +228,12 @@ class Requirement extends Notice implements RequirementInterface
 
 				// Check for multiple templates
 				$item = implode(', ',$names);
-				$notice = $this->translateString($this->strings['template']['multiple']) . '.';
+				$notice = $this->translate($this->strings['template']['multiple']) . '.';
 
 			} else {
 				// Check for single template
 				$item = trim(implode('',$names));
-				$notice = $this->translateString($this->strings['template']['single']) . '.';
+				$notice = $this->translate($this->strings['template']['single']) . '.';
 			}
 
 			$this->render([
@@ -271,7 +267,7 @@ class Requirement extends Notice implements RequirementInterface
 				$value = $module->override->value ?? '';
 
 				if ( !$this->isActivated($module->callable) && !$this->hasConfig($name,$value) ) {
-					$notice = $this->translateVars(
+					$notice = $this->transVar(
 						$this->strings['module']['config'],
 						[$name,$value]
 					) . '.';
@@ -287,7 +283,7 @@ class Requirement extends Notice implements RequirementInterface
 				if ( !$this->isActivated($module->callable) ) {
 					$this->render([
 						'item'   => $module->name,
-						'notice' => $this->translateString($this->strings['module']['required']) . '.'
+						'notice' => $this->translate($this->strings['module']['required']) . '.'
 					],$this->tpl);
 				}
 			}
@@ -311,7 +307,7 @@ class Requirement extends Notice implements RequirementInterface
 		if ( $this->versionCompare(phpversion(),$version,'<') ){
 			$this->render([
 				'item'   => "PHP {$version}",
-				'notice' => $this->translateString($this->strings['php']['required']) . '.'
+				'notice' => $this->translate($this->strings['php']['required']) . '.'
 			],$this->tpl);
 		};
 	}

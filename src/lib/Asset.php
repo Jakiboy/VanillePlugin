@@ -1,9 +1,9 @@
 <?php
 /**
- * @author    : JIHAD SINNAOUR
+ * @author    : Jakiboy
  * @package   : VanillePlugin
- * @version   : 0.9.6
- * @copyright : (c) 2018 - 2023 Jihad Sinnaour <mail@jihadsinnaour.com>
+ * @version   : 0.9.x
+ * @copyright : (c) 2018 - 2024 Jihad Sinnaour <mail@jihadsinnaour.com>
  * @link      : https://jakiboy.github.io/VanillePlugin/
  * @license   : MIT
  *
@@ -14,13 +14,10 @@ declare(strict_types=1);
 
 namespace VanillePlugin\lib;
 
-use VanillePlugin\inc\File;
-use VanillePlugin\inc\Stringify;
-use VanillePlugin\inc\Arrayify;
-use VanillePlugin\inc\TypeCheck;
-use VanillePlugin\inc\Archive;
-use VanillePlugin\inc\API;
-use VanillePlugin\int\PluginNameSpaceInterface;
+use VanillePlugin\inc\{
+	File, Stringify, Arrayify,
+	TypeCheck, Archive, API
+};
 
 final class Asset extends PluginOptions
 {
@@ -42,14 +39,13 @@ final class Asset extends PluginOptions
 	private $assets;
 
     /**
-     * @param PluginNameSpaceInterface $plugin
+     * @param void
      */
-    public function __construct(PluginNameSpaceInterface $plugin)
+    public function __construct()
 	{
-        // Init plugin config
-        $this->initConfig($plugin);
 		// Set remote assets
 		$this->assets = $this->getRemoteAsset();
+		
 		// Set cdn url
 		$this->cdn = self::CDN;
 	}

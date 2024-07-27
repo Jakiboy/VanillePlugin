@@ -1,9 +1,9 @@
 <?php
 /**
- * @author    : JIHAD SINNAOUR
+ * @author    : Jakiboy
  * @package   : VanillePlugin
- * @version   : 0.9.6
- * @copyright : (c) 2018 - 2023 Jihad Sinnaour <mail@jihadsinnaour.com>
+ * @version   : 0.9.x
+ * @copyright : (c) 2018 - 2024 Jihad Sinnaour <mail@jihadsinnaour.com>
  * @link      : https://jakiboy.github.io/VanillePlugin/
  * @license   : MIT
  *
@@ -14,157 +14,208 @@ declare(strict_types=1);
 
 namespace VanillePlugin\lib;
 
-use VanillePlugin\int\PluginNameSpaceInterface;
-use VanillePlugin\inc\Stringify;
-use VanillePlugin\inc\TypeCheck;
-use VanillePlugin\thirdparty\Cache as ThirdPartyCache;
+use VanillePlugin\inc\{
+    File, Stringify, TypeCheck
+};
 
 /**
- * Wrapper class for cache object (non-persistent).
+ * Plugin cache manager.
  */
 final class Cache extends PluginOptions
 {
 	/**
-	 * @access private
-	 * @var int $ttl, cache TTL
-	 */
-	private static $ttl = false;
-
-	/**
-	 * @param PluginNameSpaceInterface $plugin
-	 */
-	public function __construct(PluginNameSpaceInterface $plugin)
-	{
-		// Init plugin config
-		$this->initConfig($plugin);
-
-		// Set default ttl
-		if ( !self::$ttl ) {
-			self::expireIn($this->getExpireIn());
-		}
-	}
-
-	/**
-	 * Retrieves the cache contents from the cache by key and group.
-	 * 
 	 * @access public
-	 * @param int|string $key
+	 * @var string INTERNAL, Internal cache
+	 * @var string THIRD, Third-Party cache
+	 */
+	public const INTERNAL = '\VanilleCache\Cache';
+	public const THIRD    = '\VanillePlugin\thirdparty\Cache';
+
+	/**
+	 * Get cache value.
+	 *
+	 * @access public
+	 * @param string $key
 	 * @param string $group
-	 * @param bool $force
 	 * @param bool $found
-	 * @return mixed|false
+	 * @return mixed
 	 */
-	public function get($key, $group = '', $force = false, $found = null)
+	public function get(string $key, ?bool &$status = null, ?string $group = null)
 	{
-		return wp_cache_get($this->formatKey($key),$group,$force,$found);
-	}
-
-	/**
-	 * Saves the value to the cache.
-	 * 
-	 * @access public
-	 * @param int|string $key
-	 * @param mixed $value
-	 * @param string $group
-	 * @param int $expire
-	 * @return bool
-	 */
-	public function set($key, $value, $group = '', $expire = null)
-	{
-		if ( TypeCheck::isNull($expire) ) {
-			$expire = self::$ttl;
+		$key = $this->formatKey($key);
+		if ( $group ) {
+			$group = $this->formatKey($group);
 		}
-		return wp_cache_set($this->formatKey($key),$value,$group,$expire);
+		return wp_cache_get($key, $group, false, $status);
 	}
 
 	/**
-	 * Adds value to the cache, if the cache key doesn’t already exist.
-	 * 
+	 * Set cache value.
+	 *
 	 * @access public
-	 * @param int|string $key
+	 * @param string $key
 	 * @param mixed $value
+	 * @param int $ttl
 	 * @param string $group
-	 * @param int $expire
 	 * @return bool
 	 */
-	public function add($key, $value, $group = '', $expire = null)
+	public function set(string $key, $value, ?int $ttl = null, ?string $group = null) : bool
 	{
-		if ( TypeCheck::isNull($expire) ) {
-			$expire = self::$ttl;
+		if ( TypeCheck::isNull($ttl) ) {
+			$ttl = $this->getExpireIn();
 		}
-		return wp_cache_add($this->formatKey($key),$value,$group,$expire);
+		$key = $this->formatKey($key);
+		if ( $group ) {
+			$group = $this->formatKey($group);
+		}
+		return wp_cache_set($key, $value, $group, $ttl);
 	}
 
 	/**
-	 * Replaces the contents of the cache with new value.
-	 * 
+	 * Add value to cache.
+	 *
 	 * @access public
-	 * @param int|string $key
+	 * @param string $key
 	 * @param mixed $value
+	 * @param int $ttl
 	 * @param string $group
-	 * @param int $expire
 	 * @return bool
 	 */
-	public function update($key, $value, $group = '', $expire = null)
+	public function add(string $key, $value, ?int $ttl = null, ?string $group = null) : bool
 	{
-		if ( TypeCheck::isNull($expire) ) {
-			$expire = self::$ttl;
+		if ( TypeCheck::isNull($ttl) ) {
+			$ttl = $this->getExpireIn();
 		}
-		return wp_cache_replace($this->formatKey($key),$value,$group,$expire);
+		$key = $this->formatKey($key);
+		if ( $group ) {
+			$group = $this->formatKey($group);
+		}
+		return wp_cache_add($key, $value, $group, $ttl);
 	}
 
 	/**
-	 * Removes the cache contents matching key and group.
-	 * 
+	 * Update cache value.
+	 *
 	 * @access public
-	 * @param int|string $key
+	 * @param string $key
+	 * @param mixed $value
+	 * @param int $ttl
 	 * @param string $group
 	 * @return bool
 	 */
-	public function delete($key, $group = '')
+	public function update(string $key, $value, ?int $ttl = null, ?string $group = null) : bool
 	{
-		return wp_cache_delete($this->formatKey($key),$group);
+		if ( TypeCheck::isNull($ttl) ) {
+			$ttl = $this->getExpireIn();
+		}
+		$key = $this->formatKey($key);
+		if ( $group ) {
+			$group = $this->formatKey($group);
+		}
+		return wp_cache_replace($key, $value, $group, $ttl);
 	}
 
 	/**
+	 * Delete cache.
+	 *
 	 * @access public
-	 * @param void
-	 * @return void
+	 * @param string $key
+	 * @param string $group
+	 * @return bool
 	 */
-	public function flush()
+	public function delete(string $key, ?string $group = null)
 	{
-		wp_cache_flush();
+		$key = $this->formatKey($key);
+		if ( $group ) {
+			$group = $this->formatKey($group);
+		}
+		return wp_cache_delete($key, $group);
 	}
 
 	/**
+	 * Purge any cache.
+	 *
 	 * @access public
-	 * @param int $ttl 30
-	 * @return void
+	 * @param bool $force
+	 * @return bool
 	 */
-	public static function expireIn($ttl = 30)
+	public function purge(bool $force = false) : bool
 	{
-		self::$ttl = intval($ttl);
+		$count = 0;
+		$count += (int)wp_cache_flush();
+
+		if ( $this->hasThirdCache() ) {
+			$cache  = self::THIRD;
+			$count += (int)$cache::purge();
+		}
+
+		if ( $this->hasInternalCache() ) {
+			$cache  = self::getInternalCache();
+			$count += (int)$cache->purge();
+		}
+
+		if ( $force ) {
+			$path[] = $this->getTempPath();
+			$path[] = $this->getCachePath();
+			foreach ($path as $path) {
+				$count += (int)File::clearDir($path);
+			}
+		}
+
+		return (bool)$count;
 	}
 
 	/**
+	 * Check third-party cache.
+	 *
 	 * @access public
-	 * @param void
-	 * @return void
+	 * @return bool
 	 */
-	public static function removeThirdParty()
+	public function hasThirdCache() : bool
 	{
-		// Clear WordPress 3rd-party cache
-		ThirdPartyCache::purge();
+		if ( TypeCheck::isClass(self::THIRD) ) {
+			$cache = self::THIRD;
+			if ( TypeCheck::hasMethod($cache, 'isActive') ) {
+				return $cache::isActive();
+			}
+		}
+		return false;
 	}
 
 	/**
+	 * Check internal cache.
+	 *
+	 * @access public
+	 * @return bool
+	 */
+	public function hasInternalCache() : bool
+	{
+		return TypeCheck::isClass(self::INTERNAL);
+	}
+
+	/**
+	 * Get internal cache.
+	 *
+	 * @access public
+	 * @param string $driver
+	 * @return object
+	 */
+	public function getInternalCache(string $driver = 'File') : object
+	{
+		$cache = self::INTERNAL;
+		return new $cache($driver);
+	}
+
+	/**
+	 * Format cache key.
+	 *
 	 * @access private
-	 * @param int|string $key
+	 * @param string $key
 	 * @return string
 	 */
-	private function formatKey($key)
+	private function formatKey(string $key) : string
 	{
 		$key = Stringify::sanitizeKey($key);
-		return "{$this->getNameSpace()}-{$key}";
+		return $this->applyNamespace($key);
 	}
 }

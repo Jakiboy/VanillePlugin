@@ -1,9 +1,9 @@
 <?php
 /**
- * @author    : JIHAD SINNAOUR
+ * @author    : Jakiboy
  * @package   : VanillePlugin
- * @version   : 0.9.6
- * @copyright : (c) 2018 - 2023 Jihad Sinnaour <mail@jihadsinnaour.com>
+ * @version   : 0.9.x
+ * @copyright : (c) 2018 - 2024 Jihad Sinnaour <mail@jihadsinnaour.com>
  * @link      : https://jakiboy.github.io/VanillePlugin/
  * @license   : MIT
  *
@@ -14,22 +14,21 @@ declare(strict_types=1);
 
 namespace VanillePlugin\lib;
 
-use VanillePlugin\inc\HttpRequest;
-use VanillePlugin\inc\TypeCheck;
-use VanillePlugin\int\AjaxCoreInterface;
+use VanillePlugin\inc\{
+	HttpRequest, TypeCheck
+};
 use VanillePlugin\int\AjaxInterface;
-use VanillePlugin\int\PluginNameSpaceInterface;
 
 /**
- * Wrapper class for Ajax inside plugins (PluginNameSpaceInterface).
+ * Wrapper class for Ajax inside plugins.
  * @see Front actions requires admin hook for authenticated users.
  */
-final class Ajax extends PluginOptions implements AjaxCoreInterface
+final class Ajax extends PluginOptions
 {
 	/**
 	 * @access private
 	 * @var object $callable
-	 * @var array $actions
+	 * @var string $actions
 	 */
 	private $callable;
 	private $actions = [];
@@ -38,61 +37,88 @@ final class Ajax extends PluginOptions implements AjaxCoreInterface
 	 * Init plugin Ajax.
 	 *
 	 * @param AjaxInterface $callable
-	 * @param PluginNameSpaceInterface $plugin
 	 */
-	public function __construct(AjaxInterface $callable, PluginNameSpaceInterface $plugin)
+	public function __construct(AjaxInterface $callable)
 	{
-		// Init plugin config
-		$this->initConfig($plugin);
-
-		// Set callable
+		if ( !$this->isAjax() ) {
+			return;
+		}
 		$this->callable = $callable;
 
-		// Init admin actions
 		if ( $this->isAdminCallable() ) {
 			$this->actions = $this->getAdminAjax();
 			$this->initAdminActions();
+			return;
 		}
 
-		// Init front actions
 		if ( $this->isFrontCallable() ) {
 			$this->actions = $this->getFrontAjax();
 			$this->initFrontActions();
+			return;
 		}
 	}
 
 	/**
 	 * Ajax action callback.
+	 * [Uses: isAction()].
 	 *
 	 * @access public
-	 * @param void
 	 * @return void
-	 * @see Use: 'isAction()' to validate action
 	 */
 	public function callback()
 	{
 		foreach ($this->actions as $action) {
 			if ( $this->isAction($action) ) {
 				$this->callable->{$action}();
+				break;
 			}
 		}
 		die();
 	}
 
 	/**
-	 * Validate Ajax action,
-	 * Accept both POST & GET methods.
+	 * Init admin actions.
+	 * [Action: wp_ajax_{namespace}-{action}].
 	 *
 	 * @access private
-	 * @param string $action
+	 * @return void
+	 */
+	private function initAdminActions()
+	{
+		foreach ($this->actions as $action) {
+			$action = "{$this->getNameSpace()}-{$action}";
+			$this->addAction("wp_ajax_{$action}", [$this, 'callback']);
+		}
+	}
+
+	/**
+	 * Init front actions.
+	 * [Action: wp_ajax_{namespace}-{action}].
+	 * [Action: wp_ajax_nopriv_{namespace}-{action}].
+	 *
+	 * @access private
+	 * @return void
+	 */
+	private function initFrontActions()
+	{
+		foreach ($this->actions as $action) {
+			$action = "{$this->getNameSpace()}-{$action}";
+			$this->addAction("wp_ajax_{$action}", [$this, 'callback']);
+			$this->addAction("wp_ajax_nopriv_{$action}", [$this, 'callback']);
+		}
+	}
+
+	/**
+	 * Validate Ajax request action.
+	 *
+	 * @access private
 	 * @return bool
 	 */
-	private function isAction($action)
+	private function isAction(string $action) : bool
 	{
-		if ( HttpRequest::isSetted('action') ) {
-			if ( HttpRequest::get('action') == "{$this->getNameSpace()}-{$action}" ) {
-				return true;
-			}
+		$action = "{$this->getNameSpace()}-{$action}";
+		if ( HttpRequest::get('action') == $action ) {
+			return true;
 		}
 		return false;
 	}
@@ -101,61 +127,21 @@ final class Ajax extends PluginOptions implements AjaxCoreInterface
 	 * Check whether Ajax callable is admin.
 	 *
 	 * @access private
-	 * @param void
 	 * @return bool
 	 */
-	private function isAdminCallable()
+	private function isAdminCallable() : bool
 	{
-		$interface = 'VanillePlugin\int\AdminAjaxInterface';
-		return TypeCheck::hasInterface($this->callable,$interface);
+		return TypeCheck::hasInterface($this->callable, 'AdminAjaxInterface');
 	}
 
 	/**
 	 * Check whether Ajax callable is front.
 	 *
 	 * @access private
-	 * @param void
 	 * @return bool
 	 */
-	private function isFrontCallable()
+	private function isFrontCallable() : bool
 	{
-		$interface = 'VanillePlugin\int\FrontAjaxInterface';
-		return TypeCheck::hasInterface($this->callable,$interface);
-	}
-
-	/**
-	 * Init admin actions.
-	 * Action: wp_ajax_{namespace}-{action}
-	 *
-	 * @access private
-	 * @param void
-	 * @return bool
-	 */
-	private function initAdminActions()
-	{
-		foreach ($this->actions as $action) {
-			$this->addAction(
-				"wp_ajax_{$this->getNameSpace()}-{$action}",
-				[$this,'callback']
-			);
-		}
-	}
-
-	/**
-	 * Init front actions.
-	 * Action: wp_ajax_nopriv_{namespace}-{action}
-	 *
-	 * @access private
-	 * @param void
-	 * @return bool
-	 */
-	private function initFrontActions()
-	{
-		foreach ($this->actions as $action) {
-			$this->addAction(
-				"wp_ajax_nopriv_{$this->getNameSpace()}-{$action}",
-				[$this,'callback']
-			);
-		}
+		return TypeCheck::hasInterface($this->callable, 'FrontAjaxInterface');
 	}
 }

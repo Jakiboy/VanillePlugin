@@ -1,9 +1,9 @@
 <?php
 /**
- * @author    : JIHAD SINNAOUR
+ * @author    : Jakiboy
  * @package   : VanillePlugin
- * @version   : 0.9.6
- * @copyright : (c) 2018 - 2023 Jihad Sinnaour <mail@jihadsinnaour.com>
+ * @version   : 0.9.x
+ * @copyright : (c) 2018 - 2024 Jihad Sinnaour <mail@jihadsinnaour.com>
  * @link      : https://jakiboy.github.io/VanillePlugin/
  * @license   : MIT
  *
@@ -14,66 +14,149 @@ declare(strict_types=1);
 
 namespace VanillePlugin;
 
-use VanillePlugin\int\PluginNameSpaceInterface;
-use VanillePlugin\exc\ConfigurationException;
-use VanillePlugin\inc\File;
-use VanillePlugin\inc\Json;
-use VanillePlugin\inc\Stringify;
-use VanillePlugin\inc\GlobalConst;
+use VanillePlugin\exc\ConfigException;
+use VanillePlugin\inc\{
+	File, Json, Stringify, Transient, GlobalConst
+};
 
 trait VanillePluginConfig
 {
 	/**
 	 * @access private
-	 * @var string $path
-	 * @var object $global
-	 * @var string $namespace
+	 * @var int $depth, Base path depth
+	 * @var bool $cacheable, Config cache
+	 * @var string $config, Config path
+	 * @var object $global, Config global
 	 */
-	private $path = '/core/storage/config/global.json';
+	private $depth = 5;
+	private $cacheable = true;
+	private $config = '/core/storage/config/global.json';
 	private $global;
-	private $namespace;
 
 	/**
-	 * Get static instance.
+	 * Init configuration.
+	 */
+	public function __construct()
+	{
+		$this->initConfig();
+	}
+
+	/**
+	 * Prevent object clone.
+	 */
+    public function __clone()
+    {
+        die(__METHOD__ . ': Clone denied');
+    }
+
+	/**
+	 * Prevent object serialization.
+	 */
+    public function __wakeup()
+    {
+        die(__METHOD__ . ': Unserialize denied');
+    }
+
+	/**
+	 * Get static instance,
+	 * Allows access to plugin config.
 	 *
-	 * @access public
-	 * @param void
+	 * @access protected
 	 * @return object
 	 */
-	public static function getStatic()
+	protected static function getStatic()
 	{
 		return new static;
 	}
-	
+
 	/**
-	 * Set configuration JSON File,
-	 * Allows access to parent config.
+	 * Init plugin config.
 	 *
 	 * @access protected
-	 * @param PluginNameSpaceInterface $plugin
 	 * @return void
-	 * @throws ConfigurationException
 	 */
-	protected function initConfig(PluginNameSpaceInterface $plugin)
+	protected function initConfig()
 	{
-		// Check Namespace
-		VanillePluginValidator::checkNamespace($plugin);
+		if ( isset($this->global) ) {
+			return;
+		}
 
-		// Define plugin internal namespace
-		$this->namespace = Stringify::slugify($plugin->getNameSpace());
+		// Override config
+		if ( defined('VanillePluginDepth') ) {
+			$this->depth = (int)constant('VanillePluginDepth');
+		}
+		if ( defined('VanillePluginConfigPath') ) {
+			$this->config = (string)constant('VanillePluginConfigPath');
+		}
+		if ( defined('VanillePluginCache') ) {
+			$this->cacheable = (bool)constant('VanillePluginCache');
+		}
 
-		// Parse plugin config
-		$json = "{$this->getRoot()}{$this->path}";
-		if ( File::exists($json) ) {
+		if ( $this->cacheable ) {
 
-			$this->global = Json::parse($json);
-			VanillePluginValidator::checkConfig($this->global,$json);
+			$key = $this->applyPrefix('global');
+			if ( !($this->global = Transient::get($key)) ) {
+				$this->global = $this->parseConfig();
+				Transient::set($key, $this->global, 0);
+			}
 
 		} else {
-	        throw new ConfigurationException(
-	            ConfigurationException::invalidPluginConfigurationFile($json)
+			$this->global = $this->parseConfig();
+		}
+	}
+	
+	/**
+	 * Parse plugin configuration file.
+	 *
+	 * @access protected
+	 * @return mixed
+	 * @throws ConfigException
+	 */
+	protected function parseConfig()
+	{
+		$json = $this->getRoot($this->config);
+		if ( File::exists($json) ) {
+
+			$global = Json::parse($json);
+			VanillePluginValidator::checkConfig($global, $json);
+			return $global;
+
+		} else {
+	        throw new ConfigException(
+	            ConfigException::invalidConfigFile($json)
 	        );
 		}
+	}
+
+	/**
+	 * Reset config object.
+	 *
+	 * @access protected
+	 * @return void
+	 */
+	protected function resetConfig()
+	{
+		unset($this->global);
+	}
+
+	/**
+	 * Get global config option.
+	 *
+	 * @access protected
+	 * @param string $key
+	 * @return mixed
+	 */
+	protected function getConfig($key = null)
+	{
+		$this->initConfig();
+		if ( $key ) {
+			$data = $this->global->{$key} ?? null;
+			
+		} else {
+			$data = $this->global;
+		}
+		$this->resetConfig();
+		return $data;
 	}
 
 	/**
@@ -84,34 +167,57 @@ trait VanillePluginConfig
 	 * @param int $args
 	 * @return void
 	 */
-	protected function updateConfig($options = [], $args = 64|128|256)
+	protected function updateConfig($options = [], $args = 64|256)
 	{
-		$json = "{$this->getRoot()}{$this->path}";
-		$update = Json::parse($json,true);
+		$json = $this->getRoot($this->config);
+		$data = Json::parse($json, true);
+
 		foreach ($options as $option => $value) {
-			if ( isset($update['options'][$option]) ) {
-				$update['options'][$option] = $value;
+			if ( isset($data['options'][$option]) ) {
+				$data['options'][$option] = $value;
 			}
 		}
-		$update['routes'] = (object)$update['routes'];
-		$update['assets'] = (object)$update['assets'];
-		$update = Json::format($update,$args);
-		File::w("{$this->getRoot()}{$this->path}",$update);
+
+		$data['routes'] = (object)$data['routes'];
+		$data['assets'] = (object)$data['assets'];
+
+		if ( $this->isDebug() ) {
+			$args = 64|128|256;
+		}
+
+		$data = Json::format($data, $args);
+		File::w($this->getRoot($this->config), $data);
 	}
 
 	/**
-	 * Get global option.
+	 * Load configuration file.
 	 *
 	 * @access protected
-	 * @param string $var
+	 * @param string $config
+	 * @param bool $isArray
 	 * @return mixed
 	 */
-	protected function getConfig($var = null)
+	protected function loadConfig($config, $isArray = false)
 	{
-		if ( $var ) {
-			return $this->global->$var ?? null;
+		$value = false;
+		$dir = dirname($this->getRoot($this->config));
+
+		if ( $this->cacheable ) {
+			$key = $this->applyPrefix($config);
+			if ( !($value = Transient::get($key)) ) {
+				if ( File::exists( ($json = "{$dir}/{$config}.json") ) ) {
+					$value = Json::decode(File::r($json), $isArray);
+				}
+				Transient::set($key, $value, 0);
+			}
+
+		} else {
+			if ( File::exists( ($json = "{$dir}/{$config}.json") ) ) {
+				$value = Json::decode(File::r($json), $isArray);
+			}
 		}
-		return $this->global;
+
+		return $value;
 	}
 
 	/**
@@ -123,19 +229,33 @@ trait VanillePluginConfig
 	 */
 	protected function setConfigPath($path = '/global.json')
 	{
-		$this->path = $path;
+		$this->config = $path;
 	}
 
 	/**
-	 * Get static namespace.
+	 * Get dynamic namespace by root.
 	 *
 	 * @access protected
-	 * @param void
 	 * @return string
 	 */
 	protected function getNameSpace()
 	{
-		return $this->namespace;
+		return Stringify::slugify(
+			Stringify::basename($this->getRoot())
+		);
+	}
+
+	/**
+	 * Apply plugin namespace.
+	 *
+	 * @access protected
+	 * @param string $key
+	 * @param string $sep
+	 * @return string
+	 */
+	protected function applyNamespace(string $key, string $sep = '-') : string
+	{
+		return "{$this->getNameSpace()}{$sep}{$key}";
 	}
 
 	/**
@@ -147,7 +267,7 @@ trait VanillePluginConfig
 	 */
 	protected function getPluginName()
 	{
-		return $this->global->name;
+		return $this->getConfig('name');
 	}
 
 	/**
@@ -159,7 +279,7 @@ trait VanillePluginConfig
 	 */
 	protected function getPluginDescription()
 	{
-		return $this->global->description;
+		return $this->getConfig('description');
 	}
 
 	/**
@@ -171,7 +291,7 @@ trait VanillePluginConfig
 	 */
 	protected function getPluginAuthor()
 	{
-		return $this->global->author;
+		return $this->getConfig('author');
 	}
 
 	/**
@@ -183,20 +303,39 @@ trait VanillePluginConfig
 	 */
 	protected function getPluginVersion()
 	{
-		return $this->global->version;
+		return $this->getConfig('version');
 	}
 
 	/**
 	 * Get static prefix.
 	 *
 	 * @access protected
-	 * @param void
+	 * @param bool $sep
 	 * @return string
 	 */
-	protected function getPrefix()
+	protected function getPrefix($sep = true)
 	{
-		$prefix = Stringify::replace('-', '_', $this->getNameSpace());
-		return "{$prefix}_";
+		$prefix = Stringify::undash(
+			$this->getNameSpace()
+		);
+		if ( $sep ) {
+			$prefix = "{$prefix}_";
+		}
+		return $prefix;
+	}
+
+	/**
+	 * Apply plugin prefix.
+	 *
+	 * @access protected
+	 * @param string $key
+	 * @param bool $sep, Separator
+	 * @return string
+	 */
+	protected function applyPrefix($key, $sep = true)
+	{
+		$key = Stringify::undash($key);
+		return "{$this->getPrefix($sep)}{$key}";
 	}
 
 	/**
@@ -208,11 +347,13 @@ trait VanillePluginConfig
 	 */
 	protected function getAssetUrl()
 	{
-		return "{$this->getBaseUrl()}{$this->global->path->asset}";
+		$config = $this->getConfig('path');
+		$data = $config->asset ?? '/assets';
+		return "{$this->getBaseUrl()}{$data}";
 	}
 	
 	/**
-	 * Get static assets path.
+	 * Get static assets relative path.
 	 *
 	 * @access protected
 	 * @param void
@@ -220,7 +361,9 @@ trait VanillePluginConfig
 	 */
 	protected function getAsset()
 	{
-		return "/{$this->getNameSpace()}{$this->global->path->asset}";
+		$config = $this->getConfig('path');
+		$data = $config->asset ?? '/assets';
+		return "/{$this->getNameSpace()}{$data}";
 	}
 
 	/**
@@ -232,7 +375,9 @@ trait VanillePluginConfig
 	 */
 	protected function getMigrate()
 	{
-		return "{$this->getRoot()}{$this->global->path->migrate}";
+		$config = $this->getConfig('path');
+		$data = $config->migrate ?? '/migrate';
+		return $this->getRoot($data);
 	}
 
 	/**
@@ -244,7 +389,9 @@ trait VanillePluginConfig
 	 */
 	protected function getCachePath()
 	{
-		return "{$this->getRoot()}{$this->global->path->cache}";
+		$config = $this->getConfig('path');
+		$data = $config->cache ?? '/cache';
+		return $this->getRoot($data);
 	}
 
 	/**
@@ -256,7 +403,9 @@ trait VanillePluginConfig
 	 */
 	protected function getTempPath()
 	{
-		return "{$this->getRoot()}{$this->global->path->temp}";
+		$config = $this->getConfig('path');
+		$data = $config->temp ?? '/temp';
+		return $this->getRoot($data);
 	}
 
 	/**
@@ -268,7 +417,9 @@ trait VanillePluginConfig
 	 */
 	protected function getExpireIn()
 	{
-		return intval($this->global->options->ttl);
+		$config = $this->getConfig('options');
+		$data = $config->ttl ?? 0;
+		return (int)$data;
 	}
 	
 	/**
@@ -280,7 +431,9 @@ trait VanillePluginConfig
 	 */
 	protected function getViewPath()
 	{
-		return "{$this->getRoot()}{$this->global->path->view}";
+		$config = $this->getConfig('path');
+		$data = $config->view ?? '/view';
+		return $this->getRoot($data);
 	}
 
 	/**
@@ -292,7 +445,9 @@ trait VanillePluginConfig
 	 */
 	protected function getLoggerPath()
 	{
-		return "{$this->getRoot()}{$this->global->path->logs}";
+		$config = $this->getConfig('path');
+		$data = $config->logs ?? '/logs';
+		return $this->getRoot($data);
 	}
 
 	/**
@@ -304,19 +459,28 @@ trait VanillePluginConfig
 	 */
 	protected function getViewExtension()
 	{
-		return $this->global->options->view->extension;
+		$config = $this->getConfig('options');
+		$data = $config->view->extension ?? '.html';
+		return (string)$data;
 	}
 
 	/**
-	 * Get static root.
+	 * Get dynamic relative root.
 	 *
 	 * @access protected
-	 * @param void
+	 * @param string $sub
 	 * @return string
 	 */
-	protected function getRoot()
+	protected function getRoot($sub = null)
 	{
-		return GlobalConst::pluginDir("{$this->getNameSpace()}");
+		$path = __DIR__;
+		for ($i=0; $i < $this->depth; $i++) {
+			$path = dirname($path);
+		}
+		if ( $sub ) {
+			$path .= "/{$sub}";
+		}
+		return Stringify::formatPath($path);
 	}
 
 	/**
@@ -328,7 +492,8 @@ trait VanillePluginConfig
 	 */
 	protected function getMainFile()
 	{
-		return  "{$this->getNameSpace()}/{$this->getNameSpace()}.php";
+		$namespace = $this->getNameSpace();
+		return "{$namespace}/{$namespace}.php";
 	}
 
 	/**
@@ -340,7 +505,7 @@ trait VanillePluginConfig
 	 */
 	protected function getMainFilePath()
 	{
-		return "{$this->getRoot()}/{$this->getNameSpace()}.php";
+		return $this->getRoot("{$this->getNameSpace()}.php");
 	}
 
 	/**
@@ -389,8 +554,12 @@ trait VanillePluginConfig
 	 */
 	protected function getAjax()
 	{
-		$ajax = $this->loadConfig('ajax');
-		return ($ajax) ? $ajax : $this->global->ajax;
+		$this->initConfig();
+		if ( !($data = $this->loadConfig('ajax')) ) {
+			$data = $this->global->ajax ?? [];
+		}
+		$this->resetConfig();
+		return (object)$data;
 	}
 
 	/**
@@ -402,7 +571,8 @@ trait VanillePluginConfig
 	 */
 	public function getAdminAjax()
 	{
-		return $this->getAjax()->admin;
+		$data = $this->getAjax()->admin ?? [];
+		return (array)$data;
 	}
 
 	/**
@@ -414,7 +584,8 @@ trait VanillePluginConfig
 	 */
 	public function getFrontAjax()
 	{
-		return $this->getAjax()->front;
+		$data = $this->getAjax()->front ?? [];
+		return (array)$data;
 	}
 
 	/**
@@ -426,8 +597,12 @@ trait VanillePluginConfig
 	 */
 	protected function getRoutes()
 	{
-		$routes = $this->loadConfig('routes');
-		return ($routes) ? $routes : $this->global->routes;
+		$this->initConfig();
+		if ( !($data = $this->loadConfig('routes', true)) ) {
+			$data = $this->global->routes ?? [];
+		}
+		$this->resetConfig();
+		return (array)$data;
 	}
 
 	/**
@@ -439,8 +614,12 @@ trait VanillePluginConfig
 	 */
 	protected function getRequirement()
 	{
-		$requirement = $this->loadConfig('requirement');
-		return ($requirement) ? $requirement : $this->global->requirement;
+		$this->initConfig();
+		if ( !($data = $this->loadConfig('requirements')) ) {
+			$data = $this->global->requirements ?? [];
+		}
+		$this->resetConfig();
+		return (object)$data;
 	}
 	
 	/**
@@ -452,8 +631,12 @@ trait VanillePluginConfig
 	 */
 	protected function getRemoteAsset()
 	{
-		$assets = $this->loadConfig('assets');
-		return ($assets) ? (array)$assets : (array)$this->global->assets;
+		$this->initConfig();
+		if ( !($data = $this->loadConfig('assets', true)) ) {
+			$data = $this->global->assets ?? [];
+		}
+		$this->resetConfig();
+		return (array)$data;
 	}
 
 	/**
@@ -465,8 +648,12 @@ trait VanillePluginConfig
 	 */
 	protected function getStrings()
 	{
-		$strings = $this->loadConfig('strings',true);
-		return ($strings) ? (array)$strings : (array)$this->global->strings;
+		$this->initConfig();
+		if ( !($data = $this->loadConfig('strings', true)) ) {
+			$data = $this->global->strings ?? [];
+		}
+		$this->resetConfig();
+		return (array)$data;
 	}
 
 	/**
@@ -478,7 +665,9 @@ trait VanillePluginConfig
 	 */
 	protected function isMultilingual()
 	{
-		return $this->global->options->multilingual;
+		$config = $this->getConfig('options');
+		$data = $config->multilingual ?? false;
+		return (bool)$data;
 	}
 
 	/**
@@ -490,40 +679,25 @@ trait VanillePluginConfig
 	 */
 	protected function allowedMultisite()
 	{
-		return $this->global->options->multisite;
+		$config = $this->getConfig('options');
+		$data = $config->multisite ?? false;
+		return (bool)$data;
 	}
 
 	/**
 	 * Get debug status.
 	 *
-	 * @access protected
+	 * @access public
 	 * @param bool $global
 	 * @return bool
 	 */
-	protected function isDebug($global = false)
+	public function isDebug($global = true)
 	{
 		if ( $global ) {
-			if ( $this->global->options->debug || GlobalConst::debug() ) {
-				return true;
-			}
+			return GlobalConst::debug();
 		}
-		return $this->global->options->debug;
-	}
-
-	/**
-	 * Load configuration file.
-	 *
-	 * @access protected
-	 * @param string $config
-	 * @param bool $isArray
-	 * @return mixed
-	 */
-	protected function loadConfig($config, $isArray = false)
-	{
-		$dir = dirname("{$this->getRoot()}{$this->path}");
-		if ( File::exists( ($json = "{$dir}/{$config}.json") ) ) {
-			return Json::decode(File::r($json),$isArray);
-		}
-		return false;
+		$config = $this->getConfig('options');
+		$debug = $config->debug ?? false;
+		return (bool)$debug;
 	}
 }

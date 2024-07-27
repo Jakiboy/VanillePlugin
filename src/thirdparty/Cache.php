@@ -1,9 +1,9 @@
 <?php
 /**
- * @author    : JIHAD SINNAOUR
+ * @author    : Jakiboy
  * @package   : VanillePlugin
- * @version   : 0.9.6
- * @copyright : (c) 2018 - 2023 Jihad Sinnaour <mail@jihadsinnaour.com>
+ * @version   : 0.9.x
+ * @copyright : (c) 2018 - 2024 Jihad Sinnaour <mail@jihadsinnaour.com>
  * @link      : https://jakiboy.github.io/VanillePlugin/
  * @license   : MIT
  *
@@ -14,216 +14,159 @@ declare(strict_types=1);
 
 namespace VanillePlugin\thirdparty;
 
-use VanillePlugin\thirdparty\inc\module\Opcache;
-use VanillePlugin\thirdparty\inc\module\Apcu;
-use VanillePlugin\thirdparty\inc\plugin\Redis;
-use VanillePlugin\thirdparty\inc\plugin\WpRocket;
-use VanillePlugin\thirdparty\inc\plugin\LiteSpeed;
-use VanillePlugin\thirdparty\inc\plugin\WpOptimize;
-use VanillePlugin\thirdparty\inc\plugin\W3TotalCache;
-use VanillePlugin\thirdparty\inc\plugin\Kinsta;
-use VanillePlugin\thirdparty\inc\plugin\WpFastestCache;
-use VanillePlugin\thirdparty\inc\plugin\WpSuperCache;
-use VanillePlugin\thirdparty\inc\plugin\CacheEnabler;
-
 /**
  * Third-Party cache helper class.
  */
 final class Cache
 {
 	/**
-	 * Check whether cache is active (functional),
-	 * Using WordPress cache constant.
-	 * 
 	 * @access public
-	 * @param void
+	 */
+	public const MODULES = [
+		'Opcache',
+		'Apcu',
+		'Memcached'
+	];
+	public const PLUGINS = [
+		'Redis',
+		'LiteSpeed',
+		'WpRocket',
+		'W3TotalCache',
+		'Kinsta',
+		'WpOptimize',
+		'WpFastestCache',
+		'WpSuperCache',
+		'CacheEnabler',
+		'NginxHelper',
+		'Cloudflare',
+		'SpeedOptimizer',
+		'SpeedyCache',
+		'Autoptimize',
+		'Jetpack'
+	];
+
+	/**
+	 * Check whether cache is active.
+	 *
+	 * @access public
 	 * @return bool
 	 */
-	public static function isActive()
+	public static function isActive() : bool
 	{
-		if ( defined('WP_CACHE') && WP_CACHE == true ) {
-			return true;
-
-		} elseif ( Opcache::isEnabled() ) {
-			return true;
-
-		} elseif ( Apcu::isEnabled() ) {
-			return true;
-			
-		} elseif ( Redis::isEnabled() ) {
-			return true;
+		foreach (self::PLUGINS as $plugn) {
+			$plugn = __NAMESPACE__ . "\\inc\\plugin\\{$plugn}";
+			if ( $plugn::isEnabled() ) {
+				return true;
+			}
 		}
-		return false;
+
+		foreach (self::MODULES as $module) {
+			$module = __NAMESPACE__ . "\\inc\\module\\{$module}";
+			if ( $module::isEnabled() ) {
+				return true;
+			}
+		}
+
+		return Helper::hasCache();
 	}
 
 	/**
-	 * Purge plugin cache including server cache,
-	 * Purge: Can either be flush or clear or both.
-	 * 
+	 * Purge plugin cache including server cache.
+	 *
 	 * @access public
-	 * @param void
-	 * @return bool
-	 * @internal
+	 * @return void
 	 */
-	public static function purge()
+	public static function purge() : bool
 	{
 		if ( !self::isActive() ) {
 			return false;
 		}
-
-		/**
-		 * Purge Opcache.
-		 */
-		if ( Opcache::isEnabled() ) {
-			Opcache::purge();
-		}
- 
-		/**
-		 * Purge APCu.
-		 */
-		if ( Apcu::isEnabled() ) {
-			Apcu::purge();
-		}
- 
-		/**
-		 * Purge Redis.
-		 */
-		if ( Redis::isEnabled() ) {
-			Redis::purge();
+		
+		foreach (self::PLUGINS as $plugn) {
+			$plugn = __NAMESPACE__ . "\\inc\\plugin\\{$plugn}";
+			$plugn::purge();
 		}
 
-		/**
-		 * Purge WP Rocket.
-		 */
-		if ( WpRocket::isEnabled() ) {
-			WpRocket::purge();
-		}
-			    
-		/**
-		 * Purge LiteSpeed.
-		 */
-		if ( LiteSpeed::isEnabled() ) {
-			LiteSpeed::purge();
+		foreach (self::MODULES as $module) {
+			$module = __NAMESPACE__ . "\\inc\\module\\{$module}";
+			$plugn::purge();
 		}
 
-		/**
-		 * Purge W3 Total Cache.
-		 */
-		if ( W3TotalCache::isEnabled() ) {
-			W3TotalCache::purge();
-		}
+		return true;
+	}
 
-		/**
-		 * Purge WP-Optimize.
-		 */
-		if ( WpOptimize::isEnabled() ) {
-			WpOptimize::purge();
-		}
- 
-		/**
-		 * Purge Kinsta.
-		 */
-		if ( Kinsta::isEnabled() ) {
-			Kinsta::purge();
-		}
+	/**
+	 * Load geotargeting cookie before third-party cache.
+	 * [Action: init].
+	 *
+	 * @access public
+	 * @param string $cookie
+	 * @return bool
+	 */
+	public static function setTarget(string $cookie) : bool
+	{
+		if ( !self::isActive() ) {
 
-		/**
-		 * Purge WP Fastest Cache.
-		 */
-		if ( WpFastestCache::isEnabled() ) {
-			WpFastestCache::purge();
-		}
+			foreach (self::PLUGINS as $plugn) {
+				$plugn = __NAMESPACE__ . "\\inc\\plugin\\{$plugn}";
+				if ( $plugn::isEnabled() && Helper::hasMethod($plugn, 'loadGeo') ) {
+					$plugn::setTarget($cookie);
+				}
+				return true;
+			}
 
-		/**
-		 * Purge WP Super Cache.
-		 */
-		if ( WpSuperCache::isEnabled() ) {
-			WpSuperCache::purge();
-		}
-
-		/**
-		 * Purge Cache Enabler.
-		 */
-		if ( CacheEnabler::isEnabled() ) {
-			CacheEnabler::purge();
 		}
 
 		return false;
 	}
 
 	/**
-	 * Load geotargeting cookie before cache.
-	 * Action: init
-	 * Action: load
-	 * 
+	 * Enable geotargeting support for third-party cache.
+	 * [Action: {plugin}-activate].
+	 *
 	 * @access public
-	 * @param string $name, Cookie name
+	 * @param string $cookie
 	 * @return bool
-	 * @internal
 	 */
-	public static function loadGeotargeting($name)
+	public static function enableTarget(string $cookie) : bool
 	{
 		if ( self::isActive() ) {
 
-			/**
-			 * WP Rocket Geotargeting.
-			 */
-			if ( WpRocket::isEnabled() ) {
-				WpRocket::loadGeotargeting($name);
+			foreach (self::PLUGINS as $plugn) {
+				$plugn = __NAMESPACE__ . "\\inc\\plugin\\{$plugn}";
+				if ( $plugn::isEnabled() && Helper::hasMethod($plugn, 'enableTarget') ) {
+					$plugn::enableTarget($cookie);
+				}
 				return true;
 			}
 
 		}
+
 		return false;
 	}
 
 	/**
-	 * Enable geotargeting through cache.
-	 * Action: activation
-	 * 
+	 * Disable geotargeting support for third-party cache.
+	 * [Action: {plugin}-deactivate].
+	 *
 	 * @access public
-	 * @param string $name, Cookie name
+	 * @param string $cookie
 	 * @return bool
-	 * @internal
 	 */
-	public static function enableGeotargeting($name)
+	public static function disableTarget(string $cookie) : bool
 	{
 		if ( self::isActive() ) {
 
-			/**
-			 * WP Rocket Geotargeting.
-			 */
-			if ( WpRocket::isEnabled() ) {
-				WpRocket::enableGeotargeting($name);
+			foreach (self::PLUGINS as $plugn) {
+				$plugn = __NAMESPACE__ . "\\inc\\plugin\\{$plugn}";
+				if ( $plugn::isEnabled() && Helper::hasMethod($plugn, 'disableTarget') ) {
+					$plugn::disableTarget($cookie);
+				}
 				return true;
 			}
 
 		}
-		return false;
-	}
 
-	/**
-	 * Disable geotargeting through cache.
-	 * Action: deactivation
-	 * 
-	 * @access public
-	 * @param string $name, Cookie name
-	 * @return bool
-	 * @internal
-	 */
-	public static function disableGeotargeting($name)
-	{
-		if ( self::isActive() ) {
-
-			/**
-			 * WP Rocket Geotargeting.
-			 */
-			if ( WpRocket::isEnabled() ) {
-				WpRocket::disableGeotargeting($name);
-				return true;
-			}
-
-		}
 		return false;
 	}
 }

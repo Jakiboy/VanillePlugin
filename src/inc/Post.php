@@ -1,9 +1,9 @@
 <?php
 /**
- * @author    : JIHAD SINNAOUR
+ * @author    : Jakiboy
  * @package   : VanillePlugin
- * @version   : 0.9.6
- * @copyright : (c) 2018 - 2023 Jihad Sinnaour <mail@jihadsinnaour.com>
+ * @version   : 0.9.x
+ * @copyright : (c) 2018 - 2024 Jihad Sinnaour <mail@jihadsinnaour.com>
  * @link      : https://jakiboy.github.io/VanillePlugin/
  * @license   : MIT
  *
@@ -13,6 +13,8 @@
 declare(strict_types=1);
 
 namespace VanillePlugin\inc;
+
+use \WP_Query;
 
 final class Post
 {
@@ -64,6 +66,49 @@ final class Post
 	public static function getTypes($args = [], $output = 'names', $operator = 'and')
 	{
 		return get_post_types($args,$output,$operator);
+	}
+
+	/**
+	 * Get post by title.
+	 * 
+	 * @access public
+	 * @param string $title
+	 * @param string $operator
+	 * @return array
+	 */
+	public static function getByTitle($title, $type = 'post') : array
+	{
+		$query = new WP_Query([
+			'name'      => $title,
+			'post_type' => $type
+		]);
+		return $query->have_posts() ? (array)reset($query->posts) : [];
+	}
+
+	/**
+	 * Get post referer Id.
+	 *
+	 * @access public
+	 * @return mixed
+	 */
+	public static function getRefererId()
+	{
+		if ( ($url = Server::getReferer()) ) {
+			return self::getUrlId($url);
+		}
+		return false;
+	}
+
+	/**
+	 * Get post URL Id.
+	 *
+	 * @access public
+	 * @param string $url
+	 * @return mixed
+	 */
+	public static function getUrlId(string $url)
+	{
+		return url_to_postid($url);
 	}
 
 	/**

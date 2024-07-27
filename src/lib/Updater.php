@@ -1,9 +1,9 @@
 <?php
 /**
- * @author    : JIHAD SINNAOUR
+ * @author    : Jakiboy
  * @package   : VanillePlugin
- * @version   : 0.9.6
- * @copyright : (c) 2018 - 2023 Jihad Sinnaour <mail@jihadsinnaour.com>
+ * @version   : 0.9.x
+ * @copyright : (c) 2018 - 2024 Jihad Sinnaour <mail@jihadsinnaour.com>
  * @link      : https://jakiboy.github.io/VanillePlugin/
  * @license   : MIT
  *
@@ -15,14 +15,10 @@ declare(strict_types=1);
 namespace VanillePlugin\lib;
 
 use VanillePlugin\int\UpdaterInterface;
-use VanillePlugin\int\PluginNameSpaceInterface;
-use VanillePlugin\inc\TypeCheck;
-use VanillePlugin\inc\Arrayify;
-use VanillePlugin\inc\Stringify;
-use VanillePlugin\inc\Server;
-use VanillePlugin\inc\GlobalConst;
-use VanillePlugin\inc\API;
-use \stdClass;
+use VanillePlugin\inc\{
+	TypeCheck, Arrayify, Stringify,
+	Server, GlobalConst, API
+};
 
 /**
  * Wrapper class for Self-Hosted plugin.
@@ -56,17 +52,13 @@ class Updater extends PluginOptions implements UpdaterInterface
 	protected $pluginHeader;
 
 	/**
-	 * @param PluginNameSpaceInterface $plugin
 	 * @param string $host
 	 * @param array $args
 	 *
 	 * action : admin_init
 	 */
-	public function __construct(PluginNameSpaceInterface $plugin, $host, $args = [])
+	public function __construct($host, $args = [])
 	{
-		// Init plugin config
-		$this->initConfig($plugin);
-
 		// Parse plugin version
 		$this->pluginHeader = $this->getPluginHeader($this->getMainFile());
 		$this->version = !empty($this->pluginHeader['Version'])
@@ -196,7 +188,7 @@ class Updater extends PluginOptions implements UpdaterInterface
 	{
 		// Fix transient
 		if ( !TypeCheck::isObject($transient) ) {
-			$transient = new stdClass();
+			$transient = new \stdClass();
 		}
 
 		// Fetch update
@@ -228,7 +220,7 @@ class Updater extends PluginOptions implements UpdaterInterface
 	{
 		// Fix transient
 		if ( !TypeCheck::isObject($transient) ) {
-			$transient = new stdClass();
+			$transient = new \stdClass();
 		}
 
 		// Check translation API URL
@@ -244,7 +236,7 @@ class Updater extends PluginOptions implements UpdaterInterface
 
 			// Fix translation transient
 			if ( !isset($transient->translations) ) {
-				$transient = new stdClass();
+				$transient = new \stdClass();
 				$transient->translations = [];
 			}
 
@@ -252,6 +244,7 @@ class Updater extends PluginOptions implements UpdaterInterface
 			foreach ($transient->translations as $key => $translation) {
 				if ( $translation['slug'] == $this->getNameSpace() ) {
 					unset($transient->translations[$key]);
+					break;
 				}
 			}
 
@@ -282,6 +275,7 @@ class Updater extends PluginOptions implements UpdaterInterface
 						$this->deleteTransients('get-info');
 						$this->deleteTransients('check-update');
 						$this->deleteTransients('check-translation');
+						break;
 			        }
 		        }
 	    	}
@@ -464,7 +458,7 @@ class Updater extends PluginOptions implements UpdaterInterface
 	 */
 	protected function getDefaultTransient($action)
 	{
-		$transient = new stdClass();
+		$transient = new \stdClass();
 		$transient->name = $this->pluginHeader['Name'];
 		$transient->slug = $this->getNameSpace();
 
@@ -472,7 +466,7 @@ class Updater extends PluginOptions implements UpdaterInterface
 			$transient->id            = Stringify::slugify($this->pluginHeader['Name']);
 			$transient->plugin        = $this->getMainFile();
 			$transient->new_version   = $this->version;
-			$transient->compatibility = new stdClass();
+			$transient->compatibility = new \stdClass();
 
 		} elseif ( $action == 'info' ) {
 			

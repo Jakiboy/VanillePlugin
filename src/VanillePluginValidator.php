@@ -1,9 +1,9 @@
 <?php
 /**
- * @author    : JIHAD SINNAOUR
+ * @author    : Jakiboy
  * @package   : VanillePlugin
- * @version   : 0.9.6
- * @copyright : (c) 2018 - 2023 Jihad Sinnaour <mail@jihadsinnaour.com>
+ * @version   : 0.9.x
+ * @copyright : (c) 2018 - 2024 Jihad Sinnaour <mail@jihadsinnaour.com>
  * @link      : https://jakiboy.github.io/VanillePlugin/
  * @license   : MIT
  *
@@ -14,12 +14,12 @@ declare(strict_types=1);
 
 namespace VanillePlugin;
 
-use VanillePlugin\inc\Validator;
-use VanillePlugin\inc\TypeCheck;
-use VanillePlugin\inc\File;
-use VanillePlugin\inc\GlobalConst;
-use VanillePlugin\exc\NamepsaceException;
-use VanillePlugin\exc\ConfigurationException;
+use VanillePlugin\inc\{
+	Validator, TypeCheck, File, GlobalConst
+};
+use VanillePlugin\exc\{
+	NamepsaceException, ConfigException
+};
 use JsonSchema\Validator as JsonValidator;
 
 final class VanillePluginValidator extends Validator
@@ -52,18 +52,18 @@ final class VanillePluginValidator extends Validator
 	 * @var object $global,
 	 * @var string $file
 	 * @return void
-	 * @throws ConfigurationException
+	 * @throws ConfigException
 	 */
 	public static function checkConfig($global, $file = null)
 	{
 		$error = self::isValidConfig($global);
 		if ( TypeCheck::isString($error) ) {
-	        throw new ConfigurationException(
-	            ConfigurationException::invalidPluginConfiguration($error,$file)
+	        throw new ConfigException(
+	            ConfigException::invalidConfig($error,$file)
 	        );
 		} elseif ( $error === false ) {
-	        throw new ConfigurationException(
-	            ConfigurationException::invalidPluginConfigurationFormat($file)
+	        throw new ConfigException(
+	            ConfigException::invalidConfigFormat($file)
 	        );
 		}
 	}

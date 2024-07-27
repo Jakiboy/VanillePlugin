@@ -1,9 +1,9 @@
 <?php
 /**
- * @author    : JIHAD SINNAOUR
+ * @author    : Jakiboy
  * @package   : VanillePlugin
- * @version   : 0.9.6
- * @copyright : (c) 2018 - 2023 Jihad Sinnaour <mail@jihadsinnaour.com>
+ * @version   : 0.9.x
+ * @copyright : (c) 2018 - 2024 Jihad Sinnaour <mail@jihadsinnaour.com>
  * @link      : https://jakiboy.github.io/VanillePlugin/
  * @license   : MIT
  *
@@ -14,7 +14,6 @@ declare(strict_types=1);
 
 namespace VanillePlugin\lib;
 
-use VanillePlugin\int\PluginNameSpaceInterface;
 use VanillePlugin\inc\TypeCheck;
 
 /**
@@ -29,13 +28,10 @@ final class Transient extends PluginOptions
 	private static $ttl = false;
 
 	/**
-	 * @param PluginNameSpaceInterface $plugin
+	 * @param void
 	 */
-	public function __construct(PluginNameSpaceInterface $plugin)
+	public function __construct()
 	{
-		// Init plugin config
-		$this->initConfig($plugin);
-
 		// Set default ttl
 		if ( !self::$ttl ) {
 			self::expireIn($this->getExpireIn());
@@ -46,7 +42,7 @@ final class Transient extends PluginOptions
 	 * Retrieves the value of a transient.
 	 *
 	 * @access public
-	 * @param int|string $key
+	 * @param mixed $key
 	 * @return mixed
 	 */
 	public function get($key)
@@ -61,7 +57,7 @@ final class Transient extends PluginOptions
 	 * Set/update the value of a transient.
 	 * 
 	 * @access public
-	 * @param int|string $key
+	 * @param mixed $key
 	 * @param mixed $value
 	 * @param int $expire
 	 * @return bool
@@ -81,7 +77,7 @@ final class Transient extends PluginOptions
 	 * Deletes a transient.
 	 * 
 	 * @access public
-	 * @param int|string $key
+	 * @param mixed $key
 	 * @param string $group
 	 * @return bool
 	 */

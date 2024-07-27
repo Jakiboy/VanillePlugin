@@ -1,9 +1,9 @@
 <?php
 /**
- * @author    : JIHAD SINNAOUR
+ * @author    : Jakiboy
  * @package   : VanillePlugin
- * @version   : 0.9.6
- * @copyright : (c) 2018 - 2023 Jihad Sinnaour <mail@jihadsinnaour.com>
+ * @version   : 0.9.x
+ * @copyright : (c) 2018 - 2024 Jihad Sinnaour <mail@jihadsinnaour.com>
  * @link      : https://jakiboy.github.io/VanillePlugin/
  * @license   : MIT
  *
@@ -20,28 +20,31 @@ namespace VanillePlugin\thirdparty;
 final class Editor
 {
 	/**
+	 * Check whether editor is classic.
+	 *
 	 * @access public
-	 * @param void
 	 * @return bool
 	 */
-	public static function isClassic()
+	public static function isClassic() : bool
 	{
-		return class_exists('Classic_Editor');
+		return Helper::isClass('\Classic_Editor');
 	}
 
 	/**
+	 * Check whether editor is gutenberg.
+	 *
 	 * @access public
-	 * @param void
 	 * @return bool
 	 */
-	public static function isGutenberg()
+	public static function isGutenberg() : bool
 	{
-		if ( has_filter('replace_editor','gutenberg_init') ) {
+		if ( Helper::hasFilter('replace_editor', 'gutenberg_init') ) {
 			return true;
 			
 		} elseif ( !self::isClassic() ) {
 			return true;
 		}
+
 		return false;
 	}
 }

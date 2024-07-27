@@ -1,9 +1,9 @@
 <?php
 /**
- * @author    : JIHAD SINNAOUR
+ * @author    : Jakiboy
  * @package   : VanillePlugin
- * @version   : 0.9.6
- * @copyright : (c) 2018 - 2023 Jihad Sinnaour <mail@jihadsinnaour.com>
+ * @version   : 0.9.x
+ * @copyright : (c) 2018 - 2024 Jihad Sinnaour <mail@jihadsinnaour.com>
  * @link      : https://jakiboy.github.io/VanillePlugin/
  * @license   : MIT
  *
@@ -14,36 +14,36 @@ declare(strict_types=1);
 
 namespace VanillePlugin\thirdparty\inc\plugin;
 
+use VanillePlugin\thirdparty\Helper;
+
 /**
  * WP Fastest Cache plugin helper class.
- * 
+ *
  * @see https://github.com/emrevona/wp-fastest-cache
  */
 final class WpFastestCache
 {
 	/**
 	 * Check whether plugin is enabled.
-	 * 
+	 *
 	 * @access public
-	 * @param void
 	 * @return bool
 	 */
-	public static function isEnabled()
+	public static function isEnabled() : bool
 	{
-		return defined('WPFC_MAIN_PATH');
+		return Helper::hasMethod('\WpFastestCache', 'deleteCache');
 	}
 	
 	/**
 	 * Purge cache.
-	 * 
+	 *
 	 * @access public
-	 * @param void
 	 * @return bool
 	 * @internal
 	 */
-	public static function purge()
+	public static function purge() : bool
 	{
-		if ( method_exists('\WpFastestCache','deleteCache') ) {
+		if ( self::isEnabled() ) {
 			$cache = new \WpFastestCache();
 			$cache->deleteCache();
 			return true;

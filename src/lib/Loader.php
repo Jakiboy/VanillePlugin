@@ -1,9 +1,9 @@
 <?php
 /**
- * @author    : JIHAD SINNAOUR
+ * @author    : Jakiboy
  * @package   : VanillePlugin
- * @version   : 0.9.6
- * @copyright : (c) 2018 - 2023 Jihad Sinnaour <mail@jihadsinnaour.com>
+ * @version   : 0.9.x
+ * @copyright : (c) 2018 - 2024 Jihad Sinnaour <mail@jihadsinnaour.com>
  * @link      : https://jakiboy.github.io/VanillePlugin/
  * @license   : MIT
  *
@@ -14,10 +14,9 @@ declare(strict_types=1);
 
 namespace VanillePlugin\lib;
 
-use VanillePlugin\int\PluginNameSpaceInterface;
-use VanillePlugin\inc\TypeCheck;
-use VanillePlugin\inc\Stringify;
-use VanillePlugin\inc\File;
+use VanillePlugin\inc\{
+	TypeCheck, Stringify, File
+};
 
 /**
  * Class loader for custom functions and shortcodes.
@@ -31,26 +30,16 @@ final class Loader extends PluginOptions
 	 */
 	private $regex = '/^.*\.(php)$/i';
 
-    /**
-     * @param PluginNameSpaceInterface $plugin
-     */
-    public function __construct(PluginNameSpaceInterface $plugin)
-	{
-        // Init plugin config
-        $this->initConfig($plugin);
-	}
-
 	/**
 	 * Instance class.
 	 * 
 	 * @access public
 	 * @param string $path
 	 * @param string $className
-	 * @param mixed $arg1
-	 * @param mixed $arg2
+	 * @param array $args
 	 * @return mixed
 	 */
-	public function instance($path, $className, $arg1 = null, $arg2 = null)
+	public function instance($path, $className, ...$args)
 	{
 		$path = ltrim($path,'/');
 		$path = ltrim($path,'\\');
@@ -61,7 +50,7 @@ final class Loader extends PluginOptions
 			if ( isset($files[$className]) ) {
 				if ( TypeCheck::isClass($files[$className]) ) {
 					$class = $files[$className];
-					return new $class($arg1,$arg2);
+					return new $class(...$args);
 				}
 			}
 		}
@@ -74,13 +63,12 @@ final class Loader extends PluginOptions
 	 * @access public
 	 * @param string $path
 	 * @param string $className
-	 * @param mixed $arg1
-	 * @param mixed $arg2
+	 * @param array $args
 	 * @return mixed
 	 */
-	public function i($path, $className, $arg1 = null, $arg2 = null)
+	public function i($path, $className, ...$args)
 	{
-		return $this->instance($path,$className,$arg1,$arg2);
+		return $this->instance($path,$className,...$args);
 	}
 
 	/**

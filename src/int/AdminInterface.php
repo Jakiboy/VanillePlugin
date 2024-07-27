@@ -1,9 +1,9 @@
 <?php
 /**
- * @author    : JIHAD SINNAOUR
+ * @author    : Jakiboy
  * @package   : VanillePlugin
- * @version   : 0.9.6
- * @copyright : (c) 2018 - 2023 Jihad Sinnaour <mail@jihadsinnaour.com>
+ * @version   : 0.9.x
+ * @copyright : (c) 2018 - 2024 Jihad Sinnaour <mail@jihadsinnaour.com>
  * @link      : https://jakiboy.github.io/VanillePlugin/
  * @license   : MIT
  *
@@ -21,49 +21,43 @@ interface AdminInterface
      *
      * @param MenuInterface $menu
      * @param SettingsInterface $settings
-     * @see isAdmin()
      */
     function __construct(MenuInterface $menu = null, SettingsInterface $settings = null);
 
     /**
+     * Init admin.
+     *
+     * @return void
+     */
+    function init();
+
+    /**
      * Add admin CSS.
-     * 
-     * @param void
+     *
      * @return void
      */
     function initCSS();
 
     /**
      * Add admin JS.
-     * 
-     * @param void
+     *
      * @return void
      */
     function initJS();
 
     /**
      * Add global admin CSS.
-     * 
-     * @param void
+     *
      * @return void
      */
     function globalCSS();
 
     /**
      * Add global admin JS.
-     * 
-     * @param void
+     *
      * @return void
      */
     function globalJS();
-
-    /**
-     * Override WordPress about and version.
-     * 
-     * @param void
-     * @return void
-     */
-    function copyright();
 
     /**
      * Add admin body class.

@@ -1,9 +1,9 @@
 <?php
 /**
- * @author    : JIHAD SINNAOUR
+ * @author    : Jakiboy
  * @package   : VanillePlugin
- * @version   : 0.9.6
- * @copyright : (c) 2018 - 2023 Jihad Sinnaour <mail@jihadsinnaour.com>
+ * @version   : 0.9.x
+ * @copyright : (c) 2018 - 2024 Jihad Sinnaour <mail@jihadsinnaour.com>
  * @link      : https://jakiboy.github.io/VanillePlugin/
  * @license   : MIT
  *
@@ -14,13 +14,13 @@ declare(strict_types=1);
 
 namespace VanillePlugin\lib;
 
-use VanillePlugin\inc\GlobalConst;
-use VanillePlugin\inc\Stringify;
-use \WP_User;
+use VanillePlugin\inc\{
+	GlobalConst, Stringify
+};
 
 /**
  * Wrapper class for advanced WordPress global functions,
- * Defines only base functions used by plugins (PluginNameSpaceInterface).
+ * Defines only base functions used by plugins.
  * 
  * @see https://developer.wordpress.org/
  */
@@ -60,15 +60,26 @@ class WordPress
 	 * @param string $file
 	 * @param callable $callback
 	 * @return void
-	 * @see Used isAdmin() for better performance
 	 */
 	protected function registerUninstall($file, $callback)
 	{
-		if ( $this->isAdmin() ) {
-			register_uninstall_hook($file,$callback);
-		}
+		register_uninstall_hook($file,$callback);
 	}
-	
+
+	/**
+	 * Register plugin action links hook.
+	 *
+	 * @access protected
+	 * @param string $file
+	 * @param callable $callback
+	 * @return void
+	 */
+	protected function registerAction($file, $callback)
+	{
+		self::addFilter("plugin_action_links_{$file}", $callback);
+		self::addFilter("network_admin_plugin_action_links_{$file}", $callback);
+	}
+
 	/**
 	 * Add a shortcode.
 	 *
@@ -132,7 +143,7 @@ class WordPress
 				$hook = 'the_content';
 				break;
 		}
-		return add_action($hook,$callback,$priority,$args);
+		return add_action($hook, $callback, $priority, $args);
 	}
 
 	/**
@@ -160,7 +171,7 @@ class WordPress
 				$hook = 'the_content';
 				break;
 		}
-		return remove_action($hook,$callback,$priority);
+		return remove_action($hook, $callback, $priority);
 	}
 
 	/**
@@ -171,9 +182,9 @@ class WordPress
 	 * @param mixed $args
 	 * @return void
 	 */
-	protected function doAction($hook, $args = null)
+	protected function doAction($hook, ...$args)
 	{
-		do_action($hook,$args);
+		do_action($hook, ...$args);
 	}
 
 	/**
@@ -215,7 +226,7 @@ class WordPress
 				$hook = 'the_content';
 				break;
 		}
-		return add_filter($hook,$callback,$priority,$args);
+		return add_filter($hook, $callback, $priority, $args);
 	}
 
 	/**
@@ -229,7 +240,7 @@ class WordPress
 	 */
 	protected function removeFilter($hook, $callback, $priority = 10)
 	{
-		return remove_filter($hook,$callback,$priority);
+		return remove_filter($hook, $callback, $priority);
 	}
 
 	/**
@@ -241,9 +252,9 @@ class WordPress
 	 * @param mixed $args
 	 * @return mixed
 	 */
-	protected function applyFilter($hook, $value, $args = null)
+	protected function applyFilter($hook, $value, ...$args)
 	{
-		return apply_filters($hook,$value,$args);
+		return apply_filters($hook, $value, ...$args);
 	}
 
 	/**
@@ -256,7 +267,7 @@ class WordPress
 	 */
 	protected function hasFilter($hook, $callback = false)
 	{
-		return has_filter($hook,$callback);
+		return has_filter($hook, $callback);
 	}
 
 	/**
@@ -361,66 +372,64 @@ class WordPress
 	 *
 	 * @access protected
 	 * @param string $group
-	 * @param string $option
+	 * @param string $key
 	 * @param array $args
 	 * @return void
 	 */
-	protected function registerOption($group, $option, $args = [])
+	protected function registerOption($group, $key, $args = [])
 	{
-		register_setting($group,$option,$args);
+		register_setting($group, $key, $args);
 	}
 
 	/**
 	 * Register a settings and its data.
 	 *
 	 * @access protected
-	 * @param string $option
+	 * @param string $key
 	 * @param mixed $value
 	 * @return bool
 	 */
-	protected function addOption($option, $value)
+	protected function addOption($key, $value)
 	{
-		return add_option($option,$value);
+		return add_option($key, $value);
 	}
 
 	/**
 	 * Retrieves an option value based on an option name.
 	 *
 	 * @access protected
-	 * @param string $option
+	 * @param string $key
 	 * @param mixed $default
 	 * @return mixed
 	 */
-	protected function getOption($option, $default = false)
+	protected function getOption($key, $default = false)
 	{
-		return Stringify::deepStripSlash(
-			get_option($option,$default)
-		);
+		return get_option($key, $default);
 	}
 
 	/**
 	 * Update the value of an option that was already added.
 	 *
 	 * @access protected
-	 * @param string $option
+	 * @param string $key
 	 * @param mixed $value
 	 * @return bool
 	 */
-	protected function updateOption($option, $value)
+	protected function updateOption($key, $value)
 	{
-		return update_option($option,$value);
+		return update_option($key, $value);
 	}
 
 	/**
 	 * Removes option by name.
 	 *
 	 * @access protected
-	 * @param string $option
+	 * @param string $key
 	 * @return bool
 	 */
-	protected function removeOption($option)
+	protected function removeOption($key)
 	{
-		return delete_option($option);
+		return delete_option($key);
 	}
 
 	/**
@@ -543,9 +552,13 @@ class WordPress
 	 * @param void
 	 * @return string
 	 */
-	protected function getThemeDir()
+	protected function getThemeDir(?string $path = null)
 	{
-		return Stringify::formatPath(get_stylesheet_directory());
+		$baseDir = get_stylesheet_directory();
+		if ( $path ) {
+			return Stringify::formatPath("{$baseDir}/{$path}", true);
+		}
+		return $baseDir;
 	}
 
 	/**
@@ -558,6 +571,17 @@ class WordPress
 	protected function isAdmin()
 	{
 		return is_admin();
+	}
+
+	/**
+	 * Check ajax.
+	 *
+	 * @access protected
+	 * @return bool
+	 */
+	protected function isAjax() : bool
+	{
+		return GlobalConst::ajax();
 	}
 
 	/**
@@ -615,7 +639,7 @@ class WordPress
 				break;
 			case 'id':
 				$id = (int)$user;
-				$user = new WP_User($id);
+				$user = new \WP_User($id);
 				return $user->exists();
 				break;
 		}
@@ -631,7 +655,7 @@ class WordPress
 	protected function getRole($id = null)
 	{
 		$id = ($id) ? (int)$id : $this->getCurrentUserId();
-		$user = new WP_User($id);
+		$user = new \WP_User($id);
 		return (array)$user->roles;
 	}
 
@@ -674,8 +698,9 @@ class WordPress
 	 */
 	protected function addCapability($role, $cap, $grant = true)
 	{
-		$user = get_role($role);
-		$user->add_cap($cap,$grant);
+		if ( ($user = get_role($role)) ) {
+			$user->add_cap($cap,$grant);
+		}
 	}
 
 	/**
@@ -688,8 +713,9 @@ class WordPress
 	 */
 	protected function removeCapability($role, $cap)
 	{
-		$user = get_role($role);
-		$user->remove_cap($cap);
+		if ( ($user = get_role($role)) ) {
+			$user->remove_cap($cap);
+		}
 	}
 
 	/**

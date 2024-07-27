@@ -1,9 +1,9 @@
 <?php
 /**
- * @author    : JIHAD SINNAOUR
+ * @author    : Jakiboy
  * @package   : VanillePlugin
- * @version   : 0.9.6
- * @copyright : (c) 2018 - 2023 Jihad Sinnaour <mail@jihadsinnaour.com>
+ * @version   : 0.9.x
+ * @copyright : (c) 2018 - 2024 Jihad Sinnaour <mail@jihadsinnaour.com>
  * @link      : https://jakiboy.github.io/VanillePlugin/
  * @license   : MIT
  *
@@ -183,4 +183,21 @@ class Tokenizer
         }
         return $uuid;
     }
+
+	/**
+	 * Hash data.
+	 *
+	 * @access public
+	 * @param mixed $data
+	 * @param string $salt
+	 * @return string
+	 */
+	public static function hash($data, string $salt = '8Srs') : string
+	{
+        if ( !TypeCheck::isString($data) ) {
+            $data = Stringify::serialize($data);
+        }
+		$data = "{$salt}{$data}";
+		return hash('sha256', $data);
+	}
 }

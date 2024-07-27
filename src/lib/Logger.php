@@ -1,9 +1,9 @@
 <?php
 /**
- * @author    : JIHAD SINNAOUR
+ * @author    : Jakiboy
  * @package   : VanillePlugin
- * @version   : 0.9.6
- * @copyright : (c) 2018 - 2023 Jihad Sinnaour <mail@jihadsinnaour.com>
+ * @version   : 0.9.x
+ * @copyright : (c) 2018 - 2024 Jihad Sinnaour <mail@jihadsinnaour.com>
  * @link      : https://jakiboy.github.io/VanillePlugin/
  * @license   : MIT
  *
@@ -14,7 +14,6 @@ declare(strict_types=1);
 
 namespace VanillePlugin\lib;
 
-use VanillePlugin\int\PluginNameSpaceInterface;
 use VanillePlugin\int\LoggerInterface;
 use VanillePlugin\inc\File;
 
@@ -31,29 +30,13 @@ class Logger extends PluginOptions implements LoggerInterface
     protected $extension;
 
     /**
-     * @param PluginNameSpaceInterface $plugin
+     * @param void
      */
-    public function __construct(PluginNameSpaceInterface $plugin)
+    public function __construct()
     {
-        // Init plugin config
-        $this->initConfig($plugin);
-        
-        // Init logger
         $this->setPath($this->getLoggerPath());
         $this->setFilename('debug');
         $this->setExtension('log');
-    }
-
-    /**
-     * Get debug status.
-     *
-     * @access public
-     * @param bool $global
-     * @return bool
-     */
-    public function isDebug($global = false)
-    {
-        return parent::isDebug($global);
     }
 
     /**

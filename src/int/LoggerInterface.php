@@ -1,9 +1,9 @@
 <?php
 /**
- * @author    : JIHAD SINNAOUR
+ * @author    : Jakiboy
  * @package   : VanillePlugin
- * @version   : 0.9.6
- * @copyright : (c) 2018 - 2023 Jihad Sinnaour <mail@jihadsinnaour.com>
+ * @version   : 0.9.x
+ * @copyright : (c) 2018 - 2024 Jihad Sinnaour <mail@jihadsinnaour.com>
  * @link      : https://jakiboy.github.io/VanillePlugin/
  * @license   : MIT
  *
@@ -16,14 +16,6 @@ namespace VanillePlugin\int;
 
 interface LoggerInterface
 {
-    /**
-     * Get debug status.
-     *
-     * @param bool $global
-     * @return bool
-     */
-    function isDebug($global = false);
-
     /**
      * Set logger path.
      *

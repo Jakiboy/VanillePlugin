@@ -1,9 +1,9 @@
 <?php
 /**
- * @author    : JIHAD SINNAOUR
+ * @author    : Jakiboy
  * @package   : VanillePlugin
- * @version   : 0.9.6
- * @copyright : (c) 2018 - 2023 Jihad Sinnaour <mail@jihadsinnaour.com>
+ * @version   : 0.9.x
+ * @copyright : (c) 2018 - 2024 Jihad Sinnaour <mail@jihadsinnaour.com>
  * @link      : https://jakiboy.github.io/VanillePlugin/
  * @license   : MIT
  *
@@ -14,6 +14,8 @@ declare(strict_types=1);
 
 namespace VanillePlugin\thirdparty\inc\plugin;
 
+use VanillePlugin\thirdparty\Helper;
+
 /**
  * Cache Enabler plugin helper class.
  * 
@@ -23,27 +25,25 @@ final class CacheEnabler
 {
 	/**
 	 * Check whether plugin is enabled.
-	 * 
+	 *
 	 * @access public
-	 * @param void
 	 * @return bool
 	 */
-	public static function isEnabled()
+	public static function isEnabled() : bool
 	{
-		return defined('CACHE_ENABLER_VERSION');
+		return Helper::isClass('\Cache_Enabler');
 	}
 	
 	/**
 	 * Purge cache.
-	 * 
+	 *
 	 * @access public
-	 * @param void
 	 * @return bool
 	 * @internal
 	 */
-	public static function purge()
+	public static function purge() : bool
 	{
-		if ( class_exists('\Cache_Enabler') ) {
+		if ( self::isEnabled() ) {
 			\Cache_Enabler::clear_complete_cache();
 			return true;
 		}

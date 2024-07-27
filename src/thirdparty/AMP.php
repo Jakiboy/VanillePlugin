@@ -1,9 +1,9 @@
 <?php
 /**
- * @author    : JIHAD SINNAOUR
+ * @author    : Jakiboy
  * @package   : VanillePlugin
- * @version   : 0.9.6
- * @copyright : (c) 2018 - 2023 Jihad Sinnaour <mail@jihadsinnaour.com>
+ * @version   : 0.9.x
+ * @copyright : (c) 2018 - 2024 Jihad Sinnaour <mail@jihadsinnaour.com>
  * @link      : https://jakiboy.github.io/VanillePlugin/
  * @license   : MIT
  *
@@ -19,16 +19,29 @@ use VanillePlugin\thirdparty\inc\plugin\Amp as Plugin;
 /**
  * Third-Party AMP helper class.
  */
-final class AMP
+final class Amp
 {
 	/**
-	 * Check whether AMP is active (functional).
-	 * 
+	 * Check whether AMP plugin is enabled.
+	 * [Action: ini].
+	 *
 	 * @access public
-	 * @param void
 	 * @return bool
 	 */
-	public static function isActive()
+	public static function isEnabled() : bool
+	{
+		return Plugin::isEnabled();
+	}
+
+	/**
+	 * Check whether AMP is active.
+	 * [Action: wp].
+	 * [Action: wp_head].
+	 *
+	 * @access public
+	 * @return bool
+	 */
+	public static function isActive() : bool
 	{
 		return Plugin::isActive();
 	}

@@ -1,9 +1,9 @@
 <?php
 /**
- * @author    : JIHAD SINNAOUR
+ * @author    : Jakiboy
  * @package   : VanillePlugin
- * @version   : 0.9.6
- * @copyright : (c) 2018 - 2023 Jihad Sinnaour <mail@jihadsinnaour.com>
+ * @version   : 0.9.x
+ * @copyright : (c) 2018 - 2024 Jihad Sinnaour <mail@jihadsinnaour.com>
  * @link      : https://jakiboy.github.io/VanillePlugin/
  * @license   : MIT
  *
@@ -14,29 +14,51 @@ declare(strict_types=1);
 
 namespace VanillePlugin\thirdparty\inc\plugin;
 
+use VanillePlugin\thirdparty\Helper;
+
 /**
  * AMP plugin helper class.
- * 
+ *
  * @see https://github.com/ampproject/amp-wp/
  * @see https://github.com/ahmedkaludi/Accelerated-Mobile-Pages
  */
 final class Amp
 {
 	/**
-	 * Check whether plugin is active (functional).
-	 * 
+	 * Check whether plugin is enabled.
+	 *
 	 * @access public
-	 * @param void
 	 * @return bool
 	 */
-	public static function isActive()
+	public static function isEnabled() : bool
 	{
-		if ( function_exists('amp_is_request') ) {
+		if ( Helper::isFunction('amp_is_enabled') ) {
+			return true;
+		}
+
+		if ( Helper::isFunction('ampforwp_init') ) {
+			return true;
+		}
+		
+		return false;
+	}
+
+	/**
+	 * Check whether plugin is active.
+	 *
+	 * @access public
+	 * @return bool
+	 */
+	public static function isActive() : bool
+	{
+		if ( Helper::isFunction('amp_is_request') ) {
 			return amp_is_request();
 		}
-		if ( function_exists('ampforwp_is_amp_endpoint') ) {
+
+		if ( Helper::isFunction('ampforwp_is_amp_endpoint') ) {
 			return ampforwp_is_amp_endpoint();
 		}
+		
 		return false;
 	}
 }

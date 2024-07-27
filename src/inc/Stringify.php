@@ -1,9 +1,9 @@
 <?php
 /**
- * @author    : JIHAD SINNAOUR
+ * @author    : Jakiboy
  * @package   : VanillePlugin
- * @version   : 0.9.6
- * @copyright : (c) 2018 - 2023 Jihad Sinnaour <mail@jihadsinnaour.com>
+ * @version   : 0.9.x
+ * @copyright : (c) 2018 - 2024 Jihad Sinnaour <mail@jihadsinnaour.com>
  * @link      : https://jakiboy.github.io/VanillePlugin/
  * @license   : MIT
  *
@@ -82,6 +82,19 @@ final class Stringify
 	{
 		return preg_replace($regex,$replace,$subject,$limit,$count);
 	}
+	
+	/**
+	 * Remove string from other string.
+	 * 
+	 * @access public
+	 * @param string $string
+	 * @param string $subject
+	 * @return string
+	 */
+	public static function remove(string $string, string $subject) : string
+	{
+		return (string)self::replace($string, '', $subject);
+	}
 
 	/**
 	 * Repeat string.
@@ -105,7 +118,11 @@ final class Stringify
 	 */
 	public static function lowercase($string)
 	{
-		return strtolower((string)$string);
+		$string = (string)$string;
+		if ( TypeCheck::isFunction('mb_strtolower') ) {
+			return mb_strtolower($string);
+		}
+		return strtolower($string);
 	}
 
 	/**
@@ -117,7 +134,11 @@ final class Stringify
 	 */
 	public static function uppercase($string)
 	{
-		return strtoupper((string)$string);
+		$string = (string)$string;
+		if ( TypeCheck::isFunction('mb_strtoupper') ) {
+			return mb_strtoupper($string);
+		}
+		return strtoupper($string);
 	}
 
 	/**
@@ -129,7 +150,9 @@ final class Stringify
 	 */
 	public static function capitalize($string)
 	{
-		return ucfirst(self::lowercase($string));
+		$string = (string)$string;
+		$string = self::lowercase($string);
+		return ucfirst($string);
 	}
 
 	/**
@@ -764,6 +787,36 @@ final class Stringify
 	public static function sanitizeHTML($string, $html = 'post', $protocols = [])
 	{
 		return wp_kses((string)$string,$html,$protocols);
+	}
+	
+	/**
+	 * Format dash (hyphen) into underscore.
+	 *
+	 * @access public
+	 * @param string $string
+	 * @param bool $isGlobal
+	 * @return string
+	 */
+	public static function undash(string $string, bool $isGlobal = false) : string
+	{
+		if ( $isGlobal ) {
+			$string = self::uppercase($string);
+		}
+	    return self::replace('-', '_', $string);
+	}
+	
+	/**
+	 * Get basename with path format.
+	 *
+	 * @access public
+	 * @param string $path
+	 * @param string $suffix
+	 * @return string
+	 */
+	public static function basename(string $path, string $suffix = '') : string
+	{
+		$path = self::replace('\\', '/', $path);
+		return basename($path, $suffix);
 	}
 
 	/**

@@ -1,9 +1,9 @@
 <?php
 /**
- * @author    : JIHAD SINNAOUR
+ * @author    : Jakiboy
  * @package   : VanillePlugin
- * @version   : 0.9.6
- * @copyright : (c) 2018 - 2023 Jihad Sinnaour <mail@jihadsinnaour.com>
+ * @version   : 0.9.x
+ * @copyright : (c) 2018 - 2024 Jihad Sinnaour <mail@jihadsinnaour.com>
  * @link      : https://jakiboy.github.io/VanillePlugin/
  * @license   : MIT
  *
@@ -14,10 +14,10 @@ declare(strict_types=1);
 
 namespace VanillePlugin\lib;
 
-use VanillePlugin\inc\TypeCheck;
-use VanillePlugin\inc\Converter;
+use VanillePlugin\inc\{
+	TypeCheck, Converter
+};
 use VanillePlugin\int\RestApiInterface;
-use \WP_REST_Server as WPRestServer;
 
 /**
  * Wrapper class for RestAPI.
@@ -34,6 +34,7 @@ abstract class AbstractRestAPI extends PluginOptions implements RestApiInterface
 	protected $endpoint = 'default';
 	protected $version = 'v1';
 	protected $args = false;
+	protected $override = false;
 
 	/**
 	 * @access private
@@ -45,10 +46,10 @@ abstract class AbstractRestAPI extends PluginOptions implements RestApiInterface
 	 * Register routes
 	 *
 	 * @access public
-	 * @param WpRestServer $server
+	 * @param \WP_REST_Server $server
 	 * @return void
 	 */
-	abstract public function registerRoutes(WpRestServer $server);
+	abstract public function registerRoutes(\WP_REST_Server $server);
 
 	/**
 	 * Init api hook.

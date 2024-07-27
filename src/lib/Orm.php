@@ -1,9 +1,9 @@
 <?php
 /**
- * @author    : JIHAD SINNAOUR
+ * @author    : Jakiboy
  * @package   : VanillePlugin
- * @version   : 0.9.6
- * @copyright : (c) 2018 - 2023 Jihad Sinnaour <mail@jihadsinnaour.com>
+ * @version   : 0.9.x
+ * @copyright : (c) 2018 - 2024 Jihad Sinnaour <mail@jihadsinnaour.com>
  * @link      : https://jakiboy.github.io/VanillePlugin/
  * @license   : MIT
  *
@@ -14,8 +14,9 @@ declare(strict_types=1);
 
 namespace VanillePlugin\lib;
 
-use VanillePlugin\int\OrmInterface;
-use VanillePlugin\int\OrmQueryInterface;
+use VanillePlugin\int\{
+	OrmInterface, OrmQueryInterface
+};
 use VanillePlugin\inc\Stringify;
 
 /**
@@ -31,6 +32,13 @@ class Orm extends Db implements OrmInterface
 	public function __construct()
 	{
 		$this->init();
+	}
+
+	public function __destruct()
+	{
+		$this->db = null;
+		$this->prefix  = null;
+		$this->collate = null;
 	}
 
 	/**
@@ -55,7 +63,7 @@ class Orm extends Db implements OrmInterface
 	 */
 	public function prepare($sql, $args = [])
 	{
-		return $this->db->prepare($sql,$args);
+		return $this->db->prepare($sql, $args);
 	}
 
 	/**
@@ -69,9 +77,9 @@ class Orm extends Db implements OrmInterface
 	public function fetchQuery($sql = null, $isRow = false, $type = 'ARRAY_A')
 	{
 		if ( $isRow ) {
-			return $this->getRow($sql,$type);
+			return $this->getRow($sql, $type);
 		}
-		return $this->getResult($sql,$type);
+		return $this->getResult($sql, $type);
 	}
 
 	/**
@@ -85,7 +93,7 @@ class Orm extends Db implements OrmInterface
 	{
 		extract($data->query);
 		$prefix = "{$this->prefix}{$this->getPrefix()}";
-		$table = Stringify::replace('_prefix_',$prefix,$table);
+		$table = Stringify::replace('_prefix_', $prefix, $table);
 		$sql  = trim("SELECT {$column} FROM {$table} {$where} {$orderby} {$limit}");
 		$sql .= ';';
 		if ( $isSingle ) {
@@ -108,7 +116,7 @@ class Orm extends Db implements OrmInterface
 	{
 		extract($data->query);
 		$prefix = "{$this->prefix}{$this->getPrefix()}";
-		$table = Stringify::replace('_prefix_',$prefix,$table);
+		$table = Stringify::replace('_prefix_', $prefix, $table);
 		$sql  = trim("SELECT COUNT(*) FROM {$table} {$where}");
 		$sql .= ';';
 		return (int)$this->getVar($sql);
@@ -126,7 +134,7 @@ class Orm extends Db implements OrmInterface
 	public function insert($table, $data = [], $format = null)
 	{
 		$prefix = "{$this->prefix}{$this->getPrefix()}";
-		if ( $this->db->insert("{$prefix}{$table}",$data,$format) ) {
+		if ( $this->db->insert("{$prefix}{$table}", $data, $format) ) {
 			return $this->db->insert_id;
 		}
 		return false;
@@ -146,7 +154,7 @@ class Orm extends Db implements OrmInterface
 	public function update($table, $data = [], $where = [], $format = null, $f = null)
 	{
 		$prefix = "{$this->prefix}{$this->getPrefix()}";
-		return (bool)$this->db->update("{$prefix}{$table}",$data,$where,$format,$f);
+		return (bool)$this->db->update("{$prefix}{$table}", $data, $where, $format, $f);
 	}
 
 	/**
@@ -161,7 +169,7 @@ class Orm extends Db implements OrmInterface
 	public function delete($table, $where = [], $format = null)
 	{
 		$prefix = "{$this->prefix}{$this->getPrefix()}";
-		return (bool)$this->db->delete("{$prefix}{$table}",$where,$format);
+		return (bool)$this->db->delete("{$prefix}{$table}", $where, $format);
 	}
 
 	/**
